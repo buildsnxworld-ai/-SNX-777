@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Network permissions required for live internet checks and connectivity -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <application
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.MyApplication">
+
+        <!-- ======================================================= -->
+        <!-- APP 1: SNX 777 (Game Website & Player App)              -->
+        <!-- Package / Task: com.aistudio.snx777.game                -->
+        <!-- App Name: SNX 777                                       -->
+        <!-- Icon: ic_launcher                                       -->
+        <!-- ======================================================= -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:icon="@mipmap/ic_launcher"
+            android:roundIcon="@mipmap/ic_launcher_round"
+            android:taskAffinity="com.aistudio.snx777.game"
+            android:launchMode="singleTask"
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@style/Theme.MyApplication">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <!-- ======================================================= -->
+        <!-- APP 2: SNX ADMIN PANEL (Standalone Admin App)           -->
+        <!-- Package / Task: com.aistudio.snx777.admin               -->
+        <!-- App Name: SNX Admin Panel                               -->
+        <!-- Icon: ic_admin_launcher                                 -->
+        <!-- ======================================================= -->
+        <activity
+            android:name=".admin.AdminMainActivity"
+            android:exported="true"
+            android:label="@string/admin_app_name"
+            android:icon="@mipmap/ic_admin_launcher"
+            android:roundIcon="@mipmap/ic_admin_launcher"
+            android:process=":admin"
+            android:taskAffinity="com.aistudio.snx777.admin"
+            android:launchMode="singleTask"
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@style/Theme.MyApplication">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>

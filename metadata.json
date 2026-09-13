@@ -1,0 +1,6 @@
+{
+  "name": "SNX 777",
+  "description": "SNX 777 - মোবাইল গেমিং প্ল্যাটফর্ম এবং স্বতন্ত্র SNX Admin Panel এডমিন ড্যাশবোর্ড",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

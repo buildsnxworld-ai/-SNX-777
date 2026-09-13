@@ -1,0 +1,22 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Dark circular background plate -->
+    <path
+        android:fillColor="#0D1929"
+        android:pathData="M54,18 A36,36 0 1,0 54,90 A36,36 0 1,0 54,18 Z" />
+    <path
+        android:strokeColor="#00E676"
+        android:strokeWidth="2"
+        android:pathData="M54,20 A34,34 0 1,0 54,88 A34,34 0 1,0 54,20 Z" />
+    <!-- Shield Outline -->
+    <path
+        android:fillColor="#00E676"
+        android:pathData="M54,28 L72,36 C72,54 54,74 54,74 C54,74 36,54 36,36 Z" />
+    <!-- Inner Star / Key emblem -->
+    <path
+        android:fillColor="#0A0E17"
+        android:pathData="M54,34 L58,45 L69,45 L60,52 L64,63 L54,56 L44,63 L48,52 L39,45 L50,45 Z" />
+</vector>
