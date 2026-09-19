@@ -4,11 +4,17 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import java.io.File
+import java.io.FileOutputStream
 import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -16,6 +22,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -42,18 +49,21 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil.compose.AsyncImage
 import com.example.data.*
-import com.example.model.PaymentMethod
-import com.example.model.TransactionStatus
+import com.example.model.*
 import com.example.ui.theme.*
+import kotlinx.coroutines.delay
 import java.util.Locale
 
 class AdminMainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        SnxCloudSyncService.startAutoSync(this)
         setContent {
             MyApplicationTheme {
                 AdminAppRoot()
@@ -67,6 +77,27 @@ fun AdminAppRoot() {
     val context = LocalContext.current
     val adminManager = remember { AdminManager.getInstance(context) }
     val isAdminLoggedIn by adminManager.isAdminLoggedIn.collectAsStateWithLifecycle()
+
+    LaunchedEffect(Unit) {
+        adminManager.loginAdmin("SNX", "ANX 20")
+        SnxCloudSyncService.pullFromCloud(context)
+        SharedDataStore.pullFromOtherApp(context)
+        adminManager.reloadFromStorage()
+    }
+
+    LaunchedEffect(Unit) {
+        SharedDataStore.syncFlow.collect {
+            adminManager.reloadFromStorage()
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(1500)
+            SharedDataStore.pullFromOtherApp(context)
+            adminManager.reloadFromStorage()
+        }
+    }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -105,7 +136,7 @@ fun AdminLoginScreen(
     onLogin: (String, String) -> Boolean
 ) {
     var usernameInput by remember { mutableStateOf("SNX") }
-    var passwordInput by remember { mutableStateOf("") }
+    var passwordInput by remember { mutableStateOf("ANX 20") }
     var isPasswordVisible by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
@@ -286,28 +317,6 @@ fun AdminLoginScreen(
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("এডমিন প্যানেলে প্রবেশ করুন", fontSize = 15.sp, fontWeight = FontWeight.Black)
                 }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                OutlinedButton(
-                    onClick = {
-                        val intent = Intent(context, com.example.MainActivity::class.java).apply {
-                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        }
-                        context.startActivity(intent)
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(44.dp)
-                        .testTag("admin_open_game_website_btn"),
-                    shape = RoundedCornerShape(14.dp),
-                    border = BorderStroke(1.dp, Color(0xFF334155)),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF94A3B8))
-                ) {
-                    Icon(Icons.Default.SportsEsports, contentDescription = null, tint = Color(0xFF38BDF8), modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("গেমিং সাইটে যান (SNX 777)", fontSize = 13.sp, color = Color(0xFFE2E8F0))
-                }
             }
         }
     }
@@ -321,7 +330,7 @@ fun AdminDashboardScreen(
     adminManager: AdminManager,
     onLogout: () -> Unit
 ) {
-    var selectedTab by remember { mutableStateOf(0) } // 0: Payment Numbers, 1: Deposits, 2: Withdrawals, 3: Users, 4: Site Customization
+    var selectedTab by remember { mutableStateOf(0) } // 0: Payment Numbers, 1: Deposits, 2: Withdrawals, 3: Users, 4: Games, 5: Site Customization
 
     val paymentNumbers by adminManager.paymentNumbers.collectAsStateWithLifecycle()
     val depositRequests by adminManager.depositRequests.collectAsStateWithLifecycle()
@@ -358,7 +367,8 @@ fun AdminDashboardScreen(
                 1 -> AdminDepositApprovalTab(adminManager = adminManager, requests = depositRequests)
                 2 -> AdminWithdrawApprovalTab(adminManager = adminManager, requests = withdrawalRequests)
                 3 -> AdminUserManagementTab(adminManager = adminManager)
-                4 -> AdminSiteCustomizationTab(adminManager = adminManager, config = siteConfig)
+                4 -> AdminGameManagementTab(adminManager = adminManager)
+                5 -> AdminSiteCustomizationTab(adminManager = adminManager, config = siteConfig)
             }
         }
     }
@@ -370,6 +380,9 @@ fun AdminTopBar(
     onLogout: () -> Unit
 ) {
     val context = LocalContext.current
+    val isCloudConnected by SnxCloudSyncService.isCloudConnected.collectAsStateWithLifecycle()
+    val lastSyncTime by SnxCloudSyncService.lastSyncTimestamp.collectAsStateWithLifecycle()
+    var showCloudInfoDialog by remember { mutableStateOf(false) }
 
     Surface(
         color = Color(0xFF10192A),
@@ -412,25 +425,114 @@ fun AdminTopBar(
                 }
             }
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                // Quick Launch Player Website
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                // Cloud Sync Status Pill
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = if (isCloudConnected) Color(0x2200E676) else Color(0x22FF5252),
+                    border = BorderStroke(1.dp, if (isCloudConnected) Color(0xFF00E676).copy(alpha = 0.5f) else Color(0xFFFF5252).copy(alpha = 0.5f)),
+                    modifier = Modifier
+                        .clickable { showCloudInfoDialog = true }
+                        .testTag("admin_cloud_sync_pill")
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .clip(CircleShape)
+                                .background(if (isCloudConnected) Color(0xFF00E676) else Color(0xFFFF5252))
+                        )
+                        Spacer(modifier = Modifier.width(5.dp))
+                        Text(
+                            text = if (isCloudConnected) "CLOUD SYNC" else "OFFLINE",
+                            color = if (isCloudConnected) Color(0xFF00E676) else Color(0xFFFF5252),
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 0.4.sp
+                        )
+                    }
+                }
+
+                // Instant Cloud Sync Button
                 IconButton(
                     onClick = {
-                        val intent = Intent(context, com.example.MainActivity::class.java).apply {
-                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        }
-                        context.startActivity(intent)
+                        SnxCloudSyncService.syncNow(context)
+                        Toast.makeText(context, "ক্লাউড সিঙ্ক সম্পন্ন হয়েছে!", Toast.LENGTH_SHORT).show()
                     },
-                    modifier = Modifier.size(36.dp).testTag("top_admin_open_game_btn")
+                    modifier = Modifier.size(34.dp).testTag("top_admin_sync_btn")
                 ) {
-                    Icon(Icons.Default.SportsEsports, contentDescription = "Open Game Website", tint = Color(0xFF38BDF8), modifier = Modifier.size(20.dp))
+                    Icon(
+                        Icons.Default.Sync,
+                        contentDescription = "Cloud Sync Now",
+                        tint = Color(0xFF00E676),
+                        modifier = Modifier.size(18.dp)
+                    )
                 }
-                Spacer(modifier = Modifier.width(4.dp))
+
                 IconButton(
                     onClick = onLogout,
                     modifier = Modifier.size(36.dp).testTag("top_admin_logout_btn")
                 ) {
                     Icon(Icons.Default.PowerSettingsNew, contentDescription = "Logout", tint = Color(0xFFFF5252), modifier = Modifier.size(20.dp))
+                }
+            }
+        }
+    }
+
+    if (showCloudInfoDialog) {
+        Dialog(onDismissRequest = { showCloudInfoDialog = false }) {
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = Color(0xFF0F172A),
+                border = BorderStroke(1.dp, Color(0xFF334155)),
+                modifier = Modifier.fillMaxWidth().padding(16.dp)
+            ) {
+                Column(modifier = Modifier.padding(18.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.CloudSync, contentDescription = null, tint = Color(0xFF00E676), modifier = Modifier.size(28.dp))
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = "রিয়েল-টাইম ক্লাউড সিঙ্ক",
+                            color = Color.White,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = "এই ক্লাউড কানেকশনের মাধ্যমে আপনার ৩টি পৃথক অ্যাপ সর্বদা ইন্টারনেটের মাধ্যমে সংযুক্ত থাকে:\n\n" +
+                                "1. ওয়েবসাইট অ্যাপ (SNX 777)\n" +
+                                "2. এডমিন প্যানেল অ্যাপ (SNX Admin)\n" +
+                                "3. সিগন্যাল অ্যাপ (Signal App)\n\n" +
+                                "যেকোনো ডিভাইসে ইনস্টল থাকলেও ডিপোজিট অনুমোদন, উইথড্র, পেমেন্ট নম্বর এবং লাইভ গেম সিগন্যাল সাথে সাথে সিঙ্ক হবে।",
+                        color = Color(0xFFCBD5E1),
+                        fontSize = 12.sp,
+                        lineHeight = 18.sp
+                    )
+                    Spacer(modifier = Modifier.height(14.dp))
+                    Surface(
+                        color = Color(0xFF1E293B),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(10.dp)) {
+                            Text("স্ট্যাটাস: " + if (isCloudConnected) "সক্রিয় (অনলাইন)" else "অফলাইন", color = if (isCloudConnected) Color(0xFF00E676) else Color(0xFFFF5252), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text("চ্যানেল আইডি: ff808181a09d98f701a0a9a7b167194a", color = Color(0xFF94A3B8), fontSize = 10.sp)
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(
+                        onClick = { showCloudInfoDialog = false },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E676)),
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("ঠিক আছে", color = Color.Black, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         }
@@ -480,17 +582,24 @@ fun AdminBottomNavigation(
             )
             AdminNavItem(
                 icon = Icons.Default.People,
-                label = "ইউজারগণ",
+                label = "ইউজার",
                 badgeCount = 0,
                 isSelected = selectedTab == 3,
                 onClick = { onSelectTab(3) }
             )
             AdminNavItem(
-                icon = Icons.Default.Tune,
-                label = "কাস্টমাইজ",
+                icon = Icons.Default.SportsEsports,
+                label = "গেমস",
                 badgeCount = 0,
                 isSelected = selectedTab == 4,
                 onClick = { onSelectTab(4) }
+            )
+            AdminNavItem(
+                icon = Icons.Default.Tune,
+                label = "সাইট",
+                badgeCount = 0,
+                isSelected = selectedTab == 5,
+                onClick = { onSelectTab(5) }
             )
         }
     }
@@ -1395,7 +1504,14 @@ fun AdminUserManagementTab(
     val context = LocalContext.current
     var searchQuery by remember { mutableStateOf("") }
     var editingUser by remember { mutableStateOf<RegisteredAccount?>(null) }
+    var editingStatusUser by remember { mutableStateOf<RegisteredAccount?>(null) }
     var refreshTrigger by remember { mutableStateOf(0) }
+
+    LaunchedEffect(Unit) {
+        SharedDataStore.syncFlow.collect {
+            refreshTrigger++
+        }
+    }
 
     val allUsers = remember(refreshTrigger) {
         adminManager.getAllRegisteredUsers()
@@ -1473,7 +1589,8 @@ fun AdminUserManagementTab(
                 items(filteredUsers, key = { it.phone + it.username }) { u ->
                     UserAccountCard(
                         user = u,
-                        onEditBalance = { editingUser = u }
+                        onEditBalance = { editingUser = u },
+                        onEditStatus = { editingStatusUser = u }
                     )
                 }
             }
@@ -1493,12 +1610,33 @@ fun AdminUserManagementTab(
             }
         )
     }
+
+    // Edit Status Dialog
+    editingStatusUser?.let { targetUser ->
+        AdminEditUserStatusDialog(
+            user = targetUser,
+            onDismiss = { editingStatusUser = null },
+            onSaveStatus = { newStatus ->
+                adminManager.updateUserStatus(targetUser.phone, newStatus)
+                editingStatusUser = null
+                refreshTrigger++
+                val statusLabel = when (newStatus) {
+                    "ACTIVE" -> "সক্রিয়"
+                    "SUSPENDED" -> "স্থগিত"
+                    "BANNED" -> "নিষিদ্ধ"
+                    else -> newStatus
+                }
+                Toast.makeText(context, "${targetUser.username} এর স্ট্যাটাস '$statusLabel' করা হয়েছে", Toast.LENGTH_SHORT).show()
+            }
+        )
+    }
 }
 
 @Composable
 fun UserAccountCard(
     user: RegisteredAccount,
-    onEditBalance: () -> Unit
+    onEditBalance: () -> Unit,
+    onEditStatus: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -1530,7 +1668,43 @@ fun UserAccountCard(
                     }
                     Spacer(modifier = Modifier.width(10.dp))
                     Column {
-                        Text(text = user.username, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(text = user.username, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            // Status badge
+                            Surface(
+                                shape = RoundedCornerShape(4.dp),
+                                color = when (user.status) {
+                                    "SUSPENDED" -> Color(0xFFE65100).copy(alpha = 0.2f)
+                                    "BANNED" -> Color(0xFFD32F2F).copy(alpha = 0.2f)
+                                    else -> Color(0xFF00E676).copy(alpha = 0.2f)
+                                },
+                                border = BorderStroke(
+                                    1.dp,
+                                    when (user.status) {
+                                        "SUSPENDED" -> Color(0xFFFF9800)
+                                        "BANNED" -> Color(0xFFFF5252)
+                                        else -> Color(0xFF00E676)
+                                    }
+                                )
+                            ) {
+                                Text(
+                                    text = when (user.status) {
+                                        "SUSPENDED" -> "⏸ স্থগিত"
+                                        "BANNED" -> "🚫 ব্যান"
+                                        else -> "✔ সক্রিয়"
+                                    },
+                                    color = when (user.status) {
+                                        "SUSPENDED" -> Color(0xFFFFB74D)
+                                        "BANNED" -> Color(0xFFFF5252)
+                                        else -> Color(0xFF00E676)
+                                    },
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
+                                )
+                            }
+                        }
                         Text(text = "📱 ${user.phone}", color = Color(0xFF94A3B8), fontSize = 11.sp)
                         Text(text = "📅 রেজিস্ট্রেশন: ${user.registeredDate}", color = Color(0xFF38BDF8), fontSize = 10.sp)
                     }
@@ -1564,16 +1738,28 @@ fun UserAccountCard(
                     fontSize = 10.sp
                 )
 
-                Button(
-                    onClick = onEditBalance,
-                    shape = RoundedCornerShape(8.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7), contentColor = Color.White),
-                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                    modifier = Modifier.height(30.dp)
-                ) {
-                    Icon(Icons.Default.AccountBalanceWallet, contentDescription = null, modifier = Modifier.size(12.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("ব্যালেন্স এডিট", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    OutlinedButton(
+                        onClick = onEditStatus,
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                        modifier = Modifier.height(30.dp),
+                        border = BorderStroke(1.dp, Color(0xFF38BDF8))
+                    ) {
+                        Text("স্ট্যাটাস", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF38BDF8))
+                    }
+
+                    Button(
+                        onClick = onEditBalance,
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7), contentColor = Color.White),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                        modifier = Modifier.height(30.dp)
+                    ) {
+                        Icon(Icons.Default.AccountBalanceWallet, contentDescription = null, modifier = Modifier.size(12.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("ব্যালেন্স", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         }
@@ -1669,6 +1855,1044 @@ fun AdminEditUserBalanceDialog(
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E676), contentColor = Color.Black)
                     ) {
                         Text("আপডেট করুন", fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun AdminEditUserStatusDialog(
+    user: RegisteredAccount,
+    onDismiss: () -> Unit,
+    onSaveStatus: (String) -> Unit
+) {
+    var selectedStatus by remember { mutableStateOf(user.status.ifBlank { "ACTIVE" }) }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF131D31)),
+            border = BorderStroke(1.5.dp, Color(0xFF00E676))
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "ইউজার একাউন্ট স্ট্যাটাস",
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "${user.username} (${user.phone})",
+                    color = Color(0xFF38BDF8),
+                    fontSize = 12.sp
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                val statuses = listOf(
+                    Triple("ACTIVE", "🟢 সক্রিয় (ACTIVE)", "ইউজার স্বাভাবিকভাবে লগইন, ডিপোজিট ও খেলতে পারবেন"),
+                    Triple("SUSPENDED", "🟠 স্থগিত (SUSPENDED)", "সাময়িক বন্ধ, ডিপোজিট বা গেম খেলা স্থগিত থাকবে"),
+                    Triple("BANNED", "🔴 নিষিদ্ধ (BANNED)", "একাউন্ট স্থায়ীভাবে ব্যান থাকবে")
+                )
+
+                statuses.forEach { (statusKey, statusTitle, statusDesc) ->
+                    val isSelected = selectedStatus == statusKey
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = if (isSelected) Color(0xFF1E2E4A) else Color(0xFF0A0E17),
+                        border = BorderStroke(1.dp, if (isSelected) Color(0xFF00E676) else Color(0xFF1E293B)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp)
+                            .clickable { selectedStatus = statusKey }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = isSelected,
+                                onClick = { selectedStatus = statusKey },
+                                colors = RadioButtonDefaults.colors(selectedColor = Color(0xFF00E676))
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Column {
+                                Text(text = statusTitle, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                Text(text = statusDesc, color = Color(0xFF94A3B8), fontSize = 10.sp)
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Text("বাতিল", color = Color(0xFF94A3B8))
+                    }
+
+                    Button(
+                        onClick = { onSaveStatus(selectedStatus) },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E676), contentColor = Color.Black)
+                    ) {
+                        Text("সংরক্ষণ করুন", fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * TAB 4: DYNAMIC GAME MANAGEMENT
+ */
+@Composable
+fun AdminGameManagementTab(
+    adminManager: AdminManager
+) {
+    val context = LocalContext.current
+    val gamesList by adminManager.gamesList.collectAsStateWithLifecycle()
+    var searchQuery by remember { mutableStateOf("") }
+    var selectedCategoryFilter by remember { mutableStateOf<GameCategory?>(null) }
+    var isAddGameDialogOpen by remember { mutableStateOf(false) }
+    var editingGame by remember { mutableStateOf<GameItem?>(null) }
+    var deletingGame by remember { mutableStateOf<GameItem?>(null) }
+
+    val filteredGames = remember(gamesList, searchQuery, selectedCategoryFilter) {
+        gamesList.filter { game ->
+            val matchesCategory = selectedCategoryFilter == null || game.category == selectedCategoryFilter
+            val matchesSearch = searchQuery.isBlank() ||
+                    game.titleBn.contains(searchQuery, ignoreCase = true) ||
+                    game.titleEn.contains(searchQuery, ignoreCase = true)
+            matchesCategory && matchesSearch
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(14.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text(
+                    text = "ডাইনামিক গেম ম্যানেজমেন্ট",
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "মোট গেম: ${gamesList.size} টি • চালু: ${gamesList.count { it.isActive }} টি",
+                    color = Color(0xFF94A3B8),
+                    fontSize = 11.sp
+                )
+            }
+
+            Button(
+                onClick = { isAddGameDialogOpen = true },
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E676), contentColor = Color.Black),
+                shape = RoundedCornerShape(8.dp),
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+            ) {
+                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("নতুন গেম", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // Search Field
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = { searchQuery = it },
+            placeholder = { Text("গেমের নাম দিয়ে খুঁজুন...", color = Color(0xFF64748B)) },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color(0xFF94A3B8)) },
+            singleLine = true,
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Category Filter Row
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            item {
+                FilterChip(
+                    selected = selectedCategoryFilter == null,
+                    onClick = { selectedCategoryFilter = null },
+                    label = { Text("সব (${gamesList.size})", fontSize = 11.sp) }
+                )
+            }
+            items(GameCategory.values().toList()) { cat ->
+                FilterChip(
+                    selected = selectedCategoryFilter == cat,
+                    onClick = { selectedCategoryFilter = if (selectedCategoryFilter == cat) null else cat },
+                    label = { Text("${cat.icon} ${cat.bn}", fontSize = 11.sp) }
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        if (filteredGames.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(20.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "কোনো গেম মেলেনি",
+                    color = Color(0xFF64748B),
+                    fontSize = 13.sp
+                )
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(filteredGames, key = { it.id }) { game ->
+                    AdminGameCard(
+                        game = game,
+                        onToggleActive = { adminManager.toggleGameActive(game.id) },
+                        onStatusChange = { newStatus ->
+                            adminManager.setGameServerStatus(game.id, newStatus)
+                            val statusLabel = when (newStatus) {
+                                GameServerStatus.ACTIVE -> "সক্রিয়"
+                                GameServerStatus.SERVER_UPDATE -> "সার্ভার আপডেট"
+                                GameServerStatus.SERVER_ERROR -> "সার্ভার এরর"
+                                GameServerStatus.OFFLINE -> "বন্ধ/নিষ্ক্রিয়"
+                            }
+                            Toast.makeText(context, "${game.titleBn} এর স্ট্যাটাস '$statusLabel' করা হয়েছে", Toast.LENGTH_SHORT).show()
+                        },
+                        onEdit = { editingGame = game },
+                        onDelete = { deletingGame = game }
+                    )
+                }
+            }
+        }
+    }
+
+    // Add Game Dialog
+    if (isAddGameDialogOpen) {
+        AdminAddEditGameDialog(
+            gameToEdit = null,
+            onDismiss = { isAddGameDialogOpen = false },
+            onSave = { newGame ->
+                adminManager.addGame(newGame)
+                isAddGameDialogOpen = false
+                Toast.makeText(context, "${newGame.titleBn} গেমটি সফলভাবে যোগ করা হয়েছে!", Toast.LENGTH_SHORT).show()
+            }
+        )
+    }
+
+    // Edit Game Dialog
+    editingGame?.let { game ->
+        AdminAddEditGameDialog(
+            gameToEdit = game,
+            onDismiss = { editingGame = null },
+            onSave = { updatedGame ->
+                adminManager.updateGame(updatedGame)
+                editingGame = null
+                Toast.makeText(context, "${updatedGame.titleBn} গেমটি আপডেট করা হয়েছে!", Toast.LENGTH_SHORT).show()
+            }
+        )
+    }
+
+    // Delete Confirmation Dialog
+    deletingGame?.let { game ->
+        AlertDialog(
+            onDismissRequest = { deletingGame = null },
+            containerColor = Color(0xFF131D31),
+            title = { Text("গেম ডিলিট নিশ্চিত করুন", color = Color.White, fontWeight = FontWeight.Bold) },
+            text = { Text("আপনি কি নিশ্চিত যে '${game.titleBn}' গেমটি তালিকা থেকে ডিলিট করতে চান?", color = Color(0xFF94A3B8)) },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        adminManager.deleteGame(game.id)
+                        deletingGame = null
+                        Toast.makeText(context, "গেমটি ডিলিট করা হয়েছে", Toast.LENGTH_SHORT).show()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444))
+                ) {
+                    Text("ডিলিট করুন", color = Color.White)
+                }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = { deletingGame = null }) {
+                    Text("বাতিল", color = Color(0xFF94A3B8))
+                }
+            }
+        )
+    }
+}
+
+@Composable
+fun AdminGameCard(
+    game: GameItem,
+    onToggleActive: () -> Unit,
+    onStatusChange: (GameServerStatus) -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
+) {
+    val statusColor = Color(game.serverStatus.colorHex)
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF131D31)),
+        border = BorderStroke(1.dp, if (game.isActive) Color(0xFF1E293B) else Color(0xFFEF4444).copy(alpha = 0.5f))
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFF0A0E17),
+                        border = BorderStroke(1.dp, Color(0xFF1E293B)),
+                        modifier = Modifier
+                            .size(52.dp)
+                            .clickable { onEdit() }
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            if (game.imageUrl.isNotBlank()) {
+                                AsyncImage(
+                                    model = game.imageUrl,
+                                    contentDescription = game.titleEn,
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Fit
+                                )
+                            } else {
+                                Text(text = game.iconEmoji, fontSize = 26.sp)
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(10.dp))
+
+                    Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = game.titleBn,
+                                color = Color.White,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            if (game.badge != null) {
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Surface(
+                                    shape = RoundedCornerShape(4.dp),
+                                    color = Color(0xFFFFD54F)
+                                ) {
+                                    Text(
+                                        text = game.badge,
+                                        color = Color.Black,
+                                        fontSize = 8.sp,
+                                        fontWeight = FontWeight.Black,
+                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                    )
+                                }
+                            }
+                        }
+
+                        // Server Status Badge
+                        Surface(
+                            shape = RoundedCornerShape(4.dp),
+                            color = statusColor.copy(alpha = 0.18f),
+                            border = BorderStroke(0.8.dp, statusColor.copy(alpha = 0.6f)),
+                            modifier = Modifier.padding(top = 2.dp)
+                        ) {
+                            Text(
+                                text = when (game.serverStatus) {
+                                    GameServerStatus.ACTIVE -> "🟢 সক্রিয় (Active)"
+                                    GameServerStatus.SERVER_UPDATE -> "🟠 সার্ভার আপডেট (Update)"
+                                    GameServerStatus.SERVER_ERROR -> "🔴 সার্ভার এরর (Error)"
+                                    GameServerStatus.OFFLINE -> "⚫ অফলাইন (Offline)"
+                                },
+                                color = statusColor,
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                            )
+                        }
+
+                        Text(
+                            text = "${game.category.bn} • ${game.titleEn}",
+                            color = Color(0xFF94A3B8),
+                            fontSize = 11.sp,
+                            modifier = Modifier.padding(top = 2.dp)
+                        )
+                        Text(
+                            text = "মিনিমাম বাজি: ৳${game.minBet.toInt()} • প্লেয়ার: ${game.playersCount}",
+                            color = Color(0xFF38BDF8),
+                            fontSize = 10.sp
+                        )
+                    }
+                }
+
+                // Active toggle switch
+                Column(horizontalAlignment = Alignment.End) {
+                    Switch(
+                        checked = game.isActive,
+                        onCheckedChange = { onToggleActive() },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = Color.White,
+                            checkedTrackColor = Color(0xFF00E676),
+                            uncheckedThumbColor = Color(0xFF94A3B8),
+                            uncheckedTrackColor = Color(0xFF334155)
+                        )
+                    )
+                    Text(
+                        text = if (game.isActive) "চালু" else "বন্ধ",
+                        color = if (game.isActive) Color(0xFF00E676) else Color(0xFFEF4444),
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Quick Server Status One-Tap Switcher
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = Color(0xFF0A0E17),
+                border = BorderStroke(1.dp, Color(0xFF1E293B)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(8.dp)) {
+                    Text(
+                        text = "সার্ভার স্ট্যাটাস কন্ট্রোল (এক ক্লিকে পরিবর্তন):",
+                        color = Color(0xFF94A3B8),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        GameServerStatus.values().forEach { st ->
+                            val isSel = game.serverStatus == st
+                            val stColor = Color(st.colorHex)
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = if (isSel) stColor.copy(alpha = 0.25f) else Color(0xFF131D31),
+                                border = BorderStroke(1.dp, if (isSel) stColor else Color(0xFF334155)),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable { onStatusChange(st) }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(vertical = 5.dp, horizontal = 2.dp),
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(6.dp)
+                                            .clip(CircleShape)
+                                            .background(stColor)
+                                    )
+                                    Spacer(modifier = Modifier.width(3.dp))
+                                    Text(
+                                        text = when (st) {
+                                            GameServerStatus.ACTIVE -> "সক্রিয়"
+                                            GameServerStatus.SERVER_UPDATE -> "আপডেট"
+                                            GameServerStatus.SERVER_ERROR -> "এরর"
+                                            GameServerStatus.OFFLINE -> "বন্ধ"
+                                        },
+                                        color = if (isSel) Color.White else Color(0xFF94A3B8),
+                                        fontSize = 9.sp,
+                                        fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal,
+                                        maxLines = 1
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Quick Change Picture / Banner Button
+                OutlinedButton(
+                    onClick = onEdit,
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                    modifier = Modifier.height(30.dp),
+                    border = BorderStroke(1.dp, Color(0xFF00E676))
+                ) {
+                    Icon(Icons.Default.Image, contentDescription = null, modifier = Modifier.size(12.dp), tint = Color(0xFF00E676))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("ছবি / ডিজাইন বদলান", fontSize = 10.sp, color = Color(0xFF00E676), fontWeight = FontWeight.Bold)
+                }
+
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    OutlinedButton(
+                        onClick = onEdit,
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                        modifier = Modifier.height(30.dp),
+                        border = BorderStroke(1.dp, Color(0xFF38BDF8))
+                    ) {
+                        Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(12.dp), tint = Color(0xFF38BDF8))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("এডিট", fontSize = 10.sp, color = Color(0xFF38BDF8), fontWeight = FontWeight.Bold)
+                    }
+
+                    OutlinedButton(
+                        onClick = onDelete,
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                        modifier = Modifier.height(30.dp),
+                        border = BorderStroke(1.dp, Color(0xFFEF4444))
+                    ) {
+                        Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(12.dp), tint = Color(0xFFEF4444))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("ডিলিট", fontSize = 10.sp, color = Color(0xFFEF4444), fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun AdminAddEditGameDialog(
+    gameToEdit: GameItem?,
+    onDismiss: () -> Unit,
+    onSave: (GameItem) -> Unit
+) {
+    val context = LocalContext.current
+    var titleBn by remember { mutableStateOf(gameToEdit?.titleBn ?: "") }
+    var titleEn by remember { mutableStateOf(gameToEdit?.titleEn ?: "") }
+    var selectedCategory by remember { mutableStateOf(gameToEdit?.category ?: GameCategory.SLOTS) }
+    var imageUrl by remember { mutableStateOf(gameToEdit?.imageUrl ?: "") }
+    var iconEmoji by remember { mutableStateOf(gameToEdit?.iconEmoji ?: "🎰") }
+    var minBetText by remember { mutableStateOf(gameToEdit?.minBet?.toInt()?.toString() ?: "10") }
+    var badgeText by remember { mutableStateOf(gameToEdit?.badge ?: "") }
+    var isActive by remember { mutableStateOf(gameToEdit?.isActive ?: true) }
+    var serverStatus by remember { mutableStateOf(gameToEdit?.serverStatus ?: GameServerStatus.ACTIVE) }
+
+    // Photo Picker Launcher for uploading from device / phone gallery
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            try {
+                val coversDir = File(context.filesDir, "game_covers")
+                if (!coversDir.exists()) coversDir.mkdirs()
+                val targetFile = File(coversDir, "game_img_${System.currentTimeMillis()}.jpg")
+                context.contentResolver.openInputStream(uri)?.use { input ->
+                    FileOutputStream(targetFile).use { output ->
+                        input.copyTo(output)
+                    }
+                }
+                imageUrl = targetFile.absolutePath
+                Toast.makeText(context, "ছবি সফলভাবে আপলোড করা হয়েছে!", Toast.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+                Toast.makeText(context, "ছবি আপলোড করতে ব্যর্থ: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF131D31)),
+            border = BorderStroke(1.5.dp, Color(0xFF00E676)),
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+        ) {
+            Column(
+                modifier = Modifier.padding(18.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = if (gameToEdit == null) "নতুন গেম যোগ করুন" else "গেম ডিজাইন ও স্ট্যাটাস এডিট",
+                            color = Color.White,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "কাস্টম ছবি আপলোড, ইমোজি ও সার্ভার স্ট্যাটাস",
+                            color = Color(0xFF94A3B8),
+                            fontSize = 11.sp
+                        )
+                    }
+                    IconButton(onClick = onDismiss, modifier = Modifier.size(28.dp)) {
+                        Icon(Icons.Default.Close, contentDescription = "Close", tint = Color(0xFF94A3B8))
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Real-time Card Preview Box
+                Text("লাইভ প্রিভিউ (ওয়েবসাইট ও অ্যাপে যেমন দেখাবে):", color = Color(0xFF38BDF8), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(6.dp))
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color(0xFF0A0E17),
+                    border = BorderStroke(1.dp, Color(0xFF334155)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = Color(0xFF1E293B),
+                            modifier = Modifier.size(56.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                if (imageUrl.isNotBlank()) {
+                                    AsyncImage(
+                                        model = imageUrl,
+                                        contentDescription = "Preview",
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Fit
+                                    )
+                                } else {
+                                    Text(text = iconEmoji, fontSize = 30.sp)
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = if (titleBn.isNotBlank()) titleBn else "গেমের শিরোনাম",
+                                    color = Color.White,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                if (badgeText.isNotBlank()) {
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Surface(
+                                        shape = RoundedCornerShape(4.dp),
+                                        color = Color(0xFFFFD54F)
+                                    ) {
+                                        Text(
+                                            text = badgeText,
+                                            color = Color.Black,
+                                            fontSize = 8.sp,
+                                            fontWeight = FontWeight.Black,
+                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                        )
+                                    }
+                                }
+                            }
+
+                            Text(
+                                text = "${selectedCategory.bn} • ${if (titleEn.isNotBlank()) titleEn else "Title En"}",
+                                color = Color(0xFF94A3B8),
+                                fontSize = 10.sp
+                            )
+
+                            // Status Chip in Preview
+                            val previewStatusColor = Color(serverStatus.colorHex)
+                            Surface(
+                                shape = RoundedCornerShape(4.dp),
+                                color = previewStatusColor.copy(alpha = 0.2f),
+                                modifier = Modifier.padding(top = 2.dp)
+                            ) {
+                                Text(
+                                    text = when (serverStatus) {
+                                        GameServerStatus.ACTIVE -> "🟢 সক্রিয় (Active)"
+                                        GameServerStatus.SERVER_UPDATE -> "🟠 সার্ভার আপডেট"
+                                        GameServerStatus.SERVER_ERROR -> "🔴 সার্ভার এরর"
+                                        GameServerStatus.OFFLINE -> "⚫ বন্ধ (Offline)"
+                                    },
+                                    color = previewStatusColor,
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Custom Image / Icon Uploader Section
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = Color(0xFF0F172A),
+                    border = BorderStroke(1.dp, Color(0xFF00E676).copy(alpha = 0.6f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "🖼️ গেম ইমেজ ও আইকন আপলোডার",
+                                color = Color(0xFF00E676),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            if (imageUrl.isNotBlank()) {
+                                TextButton(
+                                    onClick = { imageUrl = "" },
+                                    contentPadding = PaddingValues(0.dp)
+                                ) {
+                                    Text("মুছুন / রিসেট", color = Color(0xFFEF4444), fontSize = 10.sp)
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // Button 1: Gallery / Device File Picker
+                        Button(
+                            onClick = {
+                                photoPickerLauncher.launch(
+                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                )
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E293B)),
+                            border = BorderStroke(1.dp, Color(0xFF38BDF8)),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Icon(Icons.Default.PhotoLibrary, contentDescription = null, tint = Color(0xFF38BDF8), modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "গ্যালারি / ফোন থেকে ছবি আপলোড করুন",
+                                color = Color(0xFF38BDF8),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // Option 2: Image URL input
+                        OutlinedTextField(
+                            value = imageUrl,
+                            onValueChange = { imageUrl = it },
+                            label = { Text("অথবা ছবির অনলাইন URL দিন") },
+                            placeholder = { Text("https://example.com/plane.png", fontSize = 10.sp) },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        // Option 3: Curated Quick Presets (Spribe Plane, Rocket, 777 Slots, Cricket, etc.)
+                        Text(
+                            text = "জনপ্রিয় প্রি-সেট ইমোজি ও গ্রাফিক্স (ক্লিক করে সেট করুন):",
+                            color = Color(0xFF94A3B8),
+                            fontSize = 10.sp
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            val presets = listOf(
+                                "✈️" to "বিমান ১",
+                                "🚀" to "রকেট",
+                                "🛩️" to "জেট ২",
+                                "🛸" to "ইউএফও",
+                                "🎰" to "স্লট ৭৭৭",
+                                "🎡" to "লাকি হুইল",
+                                "🏏" to "ক্রিকেট",
+                                "🃏" to "তিন পাত্তি",
+                                "🐉" to "ড্রাগন",
+                                "🎯" to "রুলেট",
+                                "🎲" to "ডাইস",
+                                "🍒" to "ফ্রুট",
+                                "🐟" to "ফিশ"
+                            )
+                            items(presets) { (emo, lbl) ->
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = if (iconEmoji == emo && imageUrl.isBlank()) Color(0xFF00E676).copy(alpha = 0.2f) else Color(0xFF1E293B),
+                                    border = BorderStroke(1.dp, if (iconEmoji == emo && imageUrl.isBlank()) Color(0xFF00E676) else Color(0xFF334155)),
+                                    modifier = Modifier.clickable {
+                                        iconEmoji = emo
+                                        imageUrl = ""
+                                    }
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Text(emo, fontSize = 20.sp)
+                                        Text(lbl, fontSize = 8.sp, color = Color(0xFFCBD5E1))
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Server Status Selector Section
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = Color(0xFF0F172A),
+                    border = BorderStroke(1.dp, Color(serverStatus.colorHex).copy(alpha = 0.6f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text(
+                            text = "⚡ সার্ভার স্ট্যাটাস কন্ট্রোল (Server Status)",
+                            color = Color.White,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "গেমটি চালু, সার্ভার এরর বা মেইনটেন্যান্স নোটিসে রাখুন",
+                            color = Color(0xFF94A3B8),
+                            fontSize = 10.sp
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            GameServerStatus.values().forEach { st ->
+                                val isSel = serverStatus == st
+                                val stCol = Color(st.colorHex)
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = if (isSel) stCol.copy(alpha = 0.25f) else Color(0xFF1E293B),
+                                    border = BorderStroke(1.dp, if (isSel) stCol else Color(0xFF334155)),
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clickable {
+                                            serverStatus = st
+                                            if (st == GameServerStatus.OFFLINE) isActive = false
+                                        }
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(vertical = 6.dp, horizontal = 2.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(8.dp)
+                                                .clip(CircleShape)
+                                                .background(stCol)
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = when (st) {
+                                                GameServerStatus.ACTIVE -> "সক্রিয়"
+                                                GameServerStatus.SERVER_UPDATE -> "আপডেট"
+                                                GameServerStatus.SERVER_ERROR -> "এরর"
+                                                GameServerStatus.OFFLINE -> "বন্ধ"
+                                            },
+                                            color = if (isSel) Color.White else Color(0xFF94A3B8),
+                                            fontSize = 9.sp,
+                                            fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal,
+                                            textAlign = TextAlign.Center
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Title Inputs
+                OutlinedTextField(
+                    value = titleBn,
+                    onValueChange = { titleBn = it },
+                    label = { Text("গেমের নাম (বাংলা)") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = titleEn,
+                    onValueChange = { titleEn = it },
+                    label = { Text("গেমের নাম (English)") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text("ক্যাটাগরি নির্বাচন করুন:", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(4.dp))
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    items(GameCategory.values().toList()) { cat ->
+                        FilterChip(
+                            selected = selectedCategory == cat,
+                            onClick = { selectedCategory = cat },
+                            label = { Text("${cat.icon} ${cat.bn}", fontSize = 10.sp) }
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedTextField(
+                        value = iconEmoji,
+                        onValueChange = { iconEmoji = it },
+                        label = { Text("ডিফল্ট ইমোজি") },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    OutlinedTextField(
+                        value = minBetText,
+                        onValueChange = { minBetText = it },
+                        label = { Text("মিনিমাম বাজি (৳)") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Badge selector row
+                Text("ব্যাজ (Badge):", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    listOf("" to "কোনোটি না", "HOT" to "🔥 HOT", "LIVE" to "🟢 LIVE", "JACKPOT" to "💰 JACKPOT", "NEW" to "✨ NEW").forEach { (bVal, bLabel) ->
+                        FilterChip(
+                            selected = badgeText == bVal,
+                            onClick = { badgeText = bVal },
+                            label = { Text(bLabel, fontSize = 9.sp) }
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Active toggle
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = if (isActive) "🟢 ওয়েবসাইটে প্রদর্শিত হবে (Active)" else "🔴 সাময়িক বন্ধ থাকবে (Inactive)",
+                        color = if (isActive) Color(0xFF00E676) else Color(0xFFEF4444),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Switch(
+                        checked = isActive,
+                        onCheckedChange = {
+                            isActive = it
+                            if (!it) serverStatus = GameServerStatus.OFFLINE
+                            else if (serverStatus == GameServerStatus.OFFLINE) serverStatus = GameServerStatus.ACTIVE
+                        },
+                        colors = SwitchDefaults.colors(checkedTrackColor = Color(0xFF00E676))
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Text("বাতিল", color = Color(0xFF94A3B8))
+                    }
+
+                    Button(
+                        onClick = {
+                            if (titleBn.isBlank()) return@Button
+                            val gameId = gameToEdit?.id ?: "game_${System.currentTimeMillis()}"
+                            val newGame = GameItem(
+                                id = gameId,
+                                titleBn = titleBn.trim(),
+                                titleEn = if (titleEn.isBlank()) titleBn.trim() else titleEn.trim(),
+                                category = selectedCategory,
+                                imageUrl = imageUrl.trim(),
+                                iconEmoji = if (iconEmoji.isBlank()) "🎰" else iconEmoji.trim(),
+                                badge = if (badgeText.isBlank()) null else badgeText.trim(),
+                                minBet = minBetText.toDoubleOrNull() ?: 10.0,
+                                playersCount = gameToEdit?.playersCount ?: (100..500).random(),
+                                isActive = (isActive && serverStatus != GameServerStatus.OFFLINE),
+                                serverStatus = serverStatus
+                            )
+                            onSave(newGame)
+                        },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E676), contentColor = Color.Black)
+                    ) {
+                        Text(if (gameToEdit == null) "গেম যোগ করুন" else "সেভ করুন", fontWeight = FontWeight.Bold)
                     }
                 }
             }

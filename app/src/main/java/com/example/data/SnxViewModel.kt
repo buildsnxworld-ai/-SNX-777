@@ -75,7 +75,7 @@ class SnxViewModel(application: Application) : AndroidViewModel(application) {
     private val _toastMessage = MutableStateFlow<String?>(null)
     val toastMessage: StateFlow<String?> = _toastMessage.asStateFlow()
 
-    // All available games matching tk999 platform
+    // All available default games
     val allGames: List<GameItem> = listOf(
         GameItem("slot_777", "মেগা জ্যাকপট ৭৭৭", "Mega Jackpot 777", GameCategory.SLOTS, "HOT", "🎰", 10.0, 3420),
         GameItem("aviator_crash", "SPRIBE AVIATOR", "SPRIBE AVIATOR", GameCategory.CRASH, "HOT", "✈️", 50.0, 9480),
@@ -91,7 +91,22 @@ class SnxViewModel(application: Application) : AndroidViewModel(application) {
         GameItem("crazy_time", "ক্রেজি টাইম শো", "Crazy Time Live Show", GameCategory.CASINO, "LIVE", "🎪", 50.0, 6200)
     )
 
+    private val _dynamicGames = MutableStateFlow<List<GameItem>>(emptyList())
+    val dynamicGames: StateFlow<List<GameItem>> = _dynamicGames.asStateFlow()
+
+    private val _siteConfig = MutableStateFlow(SiteCustomization())
+    val siteConfig: StateFlow<SiteCustomization> = _siteConfig.asStateFlow()
+
+    private val _gameServerNotice = MutableStateFlow<GameNoticeInfo?>(null)
+    val gameServerNotice: StateFlow<GameNoticeInfo?> = _gameServerNotice.asStateFlow()
+
+    fun dismissGameServerNotice() {
+        _gameServerNotice.value = null
+    }
+
     init {
+        _dynamicGames.value = loadGamesFromPrefs()
+        _siteConfig.value = loadSiteConfigFromPrefs()
         // Load saved transaction history if present (filter out any legacy mock data)
         sessionManager.getTransactions()?.let { saved ->
             val realOnly = saved.filterNot { it.id in setOf("TX9841", "TX9820", "TX9755") }
@@ -100,8 +115,26 @@ class SnxViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
 
+        // Pull any updates from other app on startup
+        SharedDataStore.pullFromOtherApp(getApplication())
+
         // Listen for preference changes (e.g., when Admin approves deposit or adjusts balance)
         sessionManager.registerListener(prefListener)
+
+        // Listen for cross-app live sync events
+        viewModelScope.launch {
+            SharedDataStore.syncFlow.collect {
+                reloadUserData()
+            }
+        }
+
+        // Auto-pull sync every 2.5 seconds to guarantee 100% instant real-time sync across separate APKs
+        viewModelScope.launch {
+            while (true) {
+                delay(2500)
+                SharedDataStore.pullFromOtherApp(getApplication())
+            }
+        }
 
         // Auto-persist user profile updates to session manager (like cookies)
         viewModelScope.launch {
@@ -173,6 +206,30 @@ class SnxViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun openGame(gameId: String) {
+        if (_userProfile.value.status == "BANNED" || _userProfile.value.status == "SUSPENDED") {
+            showToast(
+                if (_language.value == AppLanguage.BN)
+                    "🚫 আপনার একাউন্টটি সাময়িক বা স্থায়ীভাবে স্থগিত/ব্যান করা হয়েছে। অনুগ্রহ করে এডমিন সাপোর্টে যোগাযোগ করুন।"
+                else
+                    "🚫 Your account is suspended or banned. Please contact admin support."
+            )
+            return
+        }
+
+        val game = _dynamicGames.value.firstOrNull { it.id == gameId }
+            ?: allGames.firstOrNull { it.id == gameId }
+
+        if (game != null) {
+            if (game.serverStatus == GameServerStatus.SERVER_UPDATE ||
+                game.serverStatus == GameServerStatus.SERVER_ERROR ||
+                game.serverStatus == GameServerStatus.OFFLINE ||
+                !game.isActive
+            ) {
+                _gameServerNotice.value = GameNoticeInfo(game, game.serverStatus)
+                return
+            }
+        }
+
         if (gameId == "aviator_crash") {
             if (!_userProfile.value.isLoggedIn) {
                 showToast(
@@ -263,6 +320,14 @@ class SnxViewModel(application: Application) : AndroidViewModel(application) {
 
         val account = sessionManager.findRegisteredAccount(cleanId, pass)
         if (account != null) {
+            if (account.status == "BANNED") {
+                val msg = if (_language.value == AppLanguage.BN)
+                    "🚫 আপনার একাউন্টটি অ্যাডমিন কর্তৃক ব্যান করা হয়েছে। অনুগ্রহ করে সাপোর্টে যোগাযোগ করুন।"
+                else
+                    "🚫 Your account has been banned by Admin. Please contact support."
+                showToast(msg)
+                return Pair(false, msg)
+            }
             _userProfile.update {
                 it.copy(
                     username = account.username,
@@ -272,7 +337,8 @@ class SnxViewModel(application: Application) : AndroidViewModel(application) {
                     totalDeposited = account.totalDeposited,
                     totalWithdrawn = account.totalWithdrawn,
                     vipLevel = account.vipLevel,
-                    isLoggedIn = true
+                    isLoggedIn = true,
+                    status = account.status
                 )
             }
         } else {
@@ -328,9 +394,11 @@ class SnxViewModel(application: Application) : AndroidViewModel(application) {
             totalDeposited = 0.0,
             totalWithdrawn = 0.0,
             vipLevel = "VIP 1",
-            registeredDate = regDateStr
+            registeredDate = regDateStr,
+            status = "ACTIVE"
         )
         sessionManager.saveRegisteredAccount(newAccount)
+        SharedDataStore.notifyUserRegistered(getApplication(), newAccount)
 
         // Set active user profile with exactly 0.0 balance (disable automatic 7 taka)
         _userProfile.value = UserProfile(
@@ -349,7 +417,8 @@ class SnxViewModel(application: Application) : AndroidViewModel(application) {
             pendingCouponCode = null, // Vouchers cannot be auto-saved
             lastDailySpinDate = null,
             lastDailySpinTimestamp = 0L,
-            lastWeeklyCashbackClaimDate = null
+            lastWeeklyCashbackClaimDate = null,
+            status = "ACTIVE"
         )
         sessionManager.saveUserSession(_userProfile.value)
         closeAuthModal()
@@ -370,6 +439,15 @@ class SnxViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun submitDeposit(method: PaymentMethod, amount: Double, accountNo: String, trxId: String): Boolean {
+        if (_userProfile.value.status == "BANNED" || _userProfile.value.status == "SUSPENDED") {
+            showToast(
+                if (_language.value == AppLanguage.BN)
+                    "🚫 আপনার একাউন্টটি সাময়িক বা স্থায়ীভাবে স্থগিত/ব্যান করা হয়েছে। ডিপোজিট গ্রহণযোগ্য নয়।"
+                else
+                    "🚫 Your account is suspended or banned. Deposit not allowed."
+            )
+            return false
+        }
         if (amount < 300) {
             showToast(if (_language.value == AppLanguage.BN) "সর্বনিম্ন ডিপোজিট ৳৩০০ টাকা" else "Minimum deposit is ৳300")
             return false
@@ -388,7 +466,9 @@ class SnxViewModel(application: Application) : AndroidViewModel(application) {
             accountNo = accountNo,
             trxId = trxId.uppercase(),
             status = TransactionStatus.PENDING, // Pending until verified and approved by Admin
-            timeFormatted = currentTime
+            timeFormatted = currentTime,
+            username = _userProfile.value.username,
+            userPhone = _userProfile.value.phone
         )
 
         _transactions.update { listOf(record) + it }
@@ -416,6 +496,15 @@ class SnxViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun submitWithdrawal(method: PaymentMethod, amount: Double, accountNo: String): Boolean {
+        if (_userProfile.value.status == "BANNED" || _userProfile.value.status == "SUSPENDED") {
+            showToast(
+                if (_language.value == AppLanguage.BN)
+                    "🚫 আপনার একাউন্টটি সাময়িক বা স্থায়ীভাবে স্থগিত/ব্যান করা হয়েছে। উইথড্র গ্রহণ করা সম্ভব নয়।"
+                else
+                    "🚫 Your account is suspended or banned. Withdrawal not allowed."
+            )
+            return false
+        }
         if (amount < 500) {
             showToast(if (_language.value == AppLanguage.BN) "সর্বনিম্ন উত্তোলন ৳৫০০ টাকা" else "Minimum withdrawal is ৳500")
             return false
@@ -438,7 +527,9 @@ class SnxViewModel(application: Application) : AndroidViewModel(application) {
             accountNo = accountNo,
             trxId = "W" + (100000..999999).random(),
             status = TransactionStatus.PENDING, // Pending until verified and approved by Admin
-            timeFormatted = currentTime
+            timeFormatted = currentTime,
+            username = _userProfile.value.username,
+            userPhone = _userProfile.value.phone
         )
 
         _transactions.update { listOf(record) + it }
@@ -584,8 +675,80 @@ class SnxViewModel(application: Application) : AndroidViewModel(application) {
         )
     }
 
+    fun reloadUserData() {
+        val updated = sessionManager.getUserSession()
+        _userProfile.value = updated
+        _siteConfig.value = loadSiteConfigFromPrefs()
+        _dynamicGames.value = loadGamesFromPrefs()
+        sessionManager.getTransactions()?.let { saved ->
+            val realOnly = saved.filterNot { it.id in setOf("TX9841", "TX9820", "TX9755") }
+            _transactions.value = realOnly
+        }
+    }
+
+    private fun loadSiteConfigFromPrefs(): SiteCustomization {
+        val prefs = SharedDataStore.getAdminPrefs(getApplication())
+        val raw = prefs.getString("key_site_config_json", null) ?: return SiteCustomization()
+        return try {
+            val obj = org.json.JSONObject(raw)
+            SiteCustomization(
+                siteName = obj.optString("siteName", "SNX WORLD"),
+                marqueeTicker = obj.optString("marqueeTicker", "📢 প্রিয় গ্রাহক, ডিপোজিট করার পূর্বে প্রতিবার এডমিন প্যানেল কর্তৃক নির্ধারিত আপডেট নম্বর চেক করে টাকা পাঠান।"),
+                bannerNotice = obj.optString("bannerNotice", "🔥 শুভ স্বাগতম! বিকাশ ও নগদে ডিপোজিটে ৫% ইনস্ট্যান্ট বোনাস! নতুন গেম Spribe Aviator লাইভ! 🔥"),
+                aviatorGameTitle = obj.optString("aviatorGameTitle", "SPRIBE AVIATOR"),
+                isMaintenanceMode = obj.optBoolean("isMaintenanceMode", false)
+            )
+        } catch (_: Exception) {
+            SiteCustomization()
+        }
+    }
+
+    private fun loadGamesFromPrefs(): List<GameItem> {
+        val prefs = SharedDataStore.getAdminPrefs(getApplication())
+        val raw = prefs.getString("key_games_list_json", null)
+        if (raw.isNullOrEmpty()) {
+            return allGames
+        }
+        return try {
+            val array = org.json.JSONArray(raw)
+            val list = mutableListOf<GameItem>()
+            for (i in 0 until array.length()) {
+                val obj = array.getJSONObject(i)
+                val catStr = obj.optString("category", "SLOTS")
+                val category = try {
+                    GameCategory.valueOf(catStr)
+                } catch (_: Exception) {
+                    GameCategory.SLOTS
+                }
+                list.add(
+                    GameItem(
+                        id = obj.getString("id"),
+                        titleBn = obj.getString("titleBn"),
+                        titleEn = obj.getString("titleEn"),
+                        category = category,
+                        badge = if (obj.isNull("badge") || obj.optString("badge").isEmpty()) null else obj.optString("badge"),
+                        iconEmoji = obj.optString("iconEmoji", "🎰"),
+                        minBet = obj.optDouble("minBet", 10.0),
+                        playersCount = obj.optInt("playersCount", 1420),
+                        imageUrl = obj.optString("imageUrl", ""),
+                        isActive = obj.optBoolean("isActive", true),
+                        serverStatus = GameServerStatus.fromCode(obj.optString("serverStatus", "ACTIVE"))
+                    )
+                )
+            }
+            if (list.isEmpty()) allGames else list
+        } catch (_: Exception) {
+            allGames
+        }
+    }
+
     override fun onCleared() {
         super.onCleared()
         sessionManager.unregisterListener(prefListener)
     }
 }
+
+data class GameNoticeInfo(
+    val game: GameItem,
+    val status: GameServerStatus
+)

@@ -3,6 +3,9 @@ package com.example.data
 import android.content.Context
 import android.content.SharedPreferences
 import com.example.model.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -81,8 +84,9 @@ class AdminManager private constructor(context: Context) {
 
     private val appContext = context.applicationContext
     private val prefs: SharedPreferences =
-        appContext.getSharedPreferences(PREF_ADMIN, Context.MODE_PRIVATE)
+        SharedDataStore.getAdminPrefs(appContext)
     private val sessionManager = SessionManager(appContext)
+    private val coroutineScope = CoroutineScope(Dispatchers.Main)
 
     companion object {
         private const val PREF_ADMIN = "snx_admin_panel_prefs"
@@ -91,6 +95,7 @@ class AdminManager private constructor(context: Context) {
         private const val KEY_DEPOSIT_REQUESTS_JSON = "key_deposit_requests_json"
         private const val KEY_WITHDRAW_REQUESTS_JSON = "key_withdraw_requests_json"
         private const val KEY_SITE_CONFIG_JSON = "key_site_config_json"
+        private const val KEY_GAMES_LIST_JSON = "key_games_list_json"
         private const val KEY_BKASH_INDEX = "key_bkash_rr_index"
         private const val KEY_NAGAD_INDEX = "key_nagad_rr_index"
 
@@ -123,11 +128,46 @@ class AdminManager private constructor(context: Context) {
     private val _siteConfig = MutableStateFlow(SiteCustomization())
     val siteConfig: StateFlow<SiteCustomization> = _siteConfig.asStateFlow()
 
+    private val _gamesList = MutableStateFlow<List<GameItem>>(emptyList())
+    val gamesList: StateFlow<List<GameItem>> = _gamesList.asStateFlow()
+
+    private val _registeredUsers = MutableStateFlow<List<RegisteredAccount>>(emptyList())
+    val registeredUsers: StateFlow<List<RegisteredAccount>> = _registeredUsers.asStateFlow()
+
     init {
         loadPaymentNumbers()
         loadDepositRequests()
         loadWithdrawRequests()
         loadSiteConfig()
+        loadGames()
+        loadRegisteredUsers()
+
+        coroutineScope.launch {
+            SharedDataStore.syncFlow.collect {
+                reloadFromStorage()
+            }
+        }
+    }
+
+    fun reloadFromStorage() {
+        loadPaymentNumbers()
+        loadDepositRequests()
+        loadWithdrawRequests()
+        loadSiteConfig()
+        loadGames()
+        loadRegisteredUsers()
+    }
+
+    fun reloadPaymentNumbers() {
+        loadPaymentNumbers()
+    }
+
+    fun reloadDepositRequests() {
+        loadDepositRequests()
+    }
+
+    fun reloadWithdrawRequests() {
+        loadWithdrawRequests()
     }
 
     // ==========================================
@@ -162,35 +202,103 @@ class AdminManager private constructor(context: Context) {
     // ==========================================
     private fun loadPaymentNumbers() {
         val raw = prefs.getString(KEY_PAYMENT_NUMBERS_JSON, null)
-        if (raw.isNullOrEmpty()) {
-            // Initialize with default 10 bKash and 10 Nagad numbers
+        if (raw.isNullOrEmpty() || raw == "[]") {
             val defaultList = createDefaultPaymentNumbers()
             _paymentNumbers.value = defaultList
-            savePaymentNumbers(defaultList)
+            savePaymentNumbersDirect(defaultList)
         } else {
             try {
                 val array = JSONArray(raw)
                 val list = mutableListOf<AdminPaymentNumber>()
                 for (i in 0 until array.length()) {
                     val obj = array.getJSONObject(i)
+                    val num = obj.optString("number", obj.optString("phone", "")).trim()
+                    if (num.isBlank()) continue
+                    val methodStr = obj.optString("method", "BKASH").uppercase()
+                    val method = if (methodStr.contains("NAGAD")) PaymentMethod.NAGAD else PaymentMethod.BKASH
+                    val id = obj.optString("id", java.util.UUID.randomUUID().toString())
+                    val label = obj.optString("agentLabel", obj.optString("agent_label", "Agent ${num.takeLast(4)}"))
+                    val active = obj.optBoolean("isActive", obj.optBoolean("is_active", true))
+                    val created = obj.optString("createdAt", obj.optString("created_at", ""))
                     list.add(
                         AdminPaymentNumber(
-                            id = obj.getString("id"),
-                            method = PaymentMethod.valueOf(obj.getString("method")),
-                            number = obj.getString("number"),
-                            agentLabel = obj.getString("agentLabel"),
-                            isActive = obj.optBoolean("isActive", true),
-                            createdAt = obj.optString("createdAt", "")
+                            id = id,
+                            method = method,
+                            number = num,
+                            agentLabel = label,
+                            isActive = active,
+                            createdAt = created
                         )
                     )
                 }
-                _paymentNumbers.value = list
+                if (list.isNotEmpty()) {
+                    _paymentNumbers.value = list
+                } else {
+                    val defaultList = createDefaultPaymentNumbers()
+                    _paymentNumbers.value = defaultList
+                }
             } catch (_: Exception) {
-                val defaultList = createDefaultPaymentNumbers()
-                _paymentNumbers.value = defaultList
-                savePaymentNumbers(defaultList)
+                if (_paymentNumbers.value.isEmpty()) {
+                    _paymentNumbers.value = createDefaultPaymentNumbers()
+                }
             }
         }
+    }
+
+    /**
+     * Instantly updates payment numbers from cloud payload and notifies state flows.
+     */
+    fun applyPaymentNumbersFromCloud(jsonStr: String): Boolean {
+        if (jsonStr.isBlank() || jsonStr == "[]") return false
+        try {
+            val array = JSONArray(jsonStr)
+            val list = mutableListOf<AdminPaymentNumber>()
+            for (i in 0 until array.length()) {
+                val obj = array.getJSONObject(i)
+                val num = obj.optString("number", obj.optString("phone", "")).trim()
+                if (num.isBlank()) continue
+                val methodStr = obj.optString("method", "BKASH").uppercase()
+                val method = if (methodStr.contains("NAGAD")) PaymentMethod.NAGAD else PaymentMethod.BKASH
+                val id = obj.optString("id", java.util.UUID.randomUUID().toString())
+                val label = obj.optString("agentLabel", obj.optString("agent_label", "Agent ${num.takeLast(4)}"))
+                val active = obj.optBoolean("isActive", obj.optBoolean("is_active", true))
+                val created = obj.optString("createdAt", obj.optString("created_at", ""))
+                list.add(
+                    AdminPaymentNumber(
+                        id = id,
+                        method = method,
+                        number = num,
+                        agentLabel = label,
+                        isActive = active,
+                        createdAt = created
+                    )
+                )
+            }
+            if (list.isNotEmpty()) {
+                _paymentNumbers.value = list
+                prefs.edit().putString(KEY_PAYMENT_NUMBERS_JSON, jsonStr).apply()
+                return true
+            }
+        } catch (_: Exception) {}
+        return false
+    }
+
+    private fun savePaymentNumbersDirect(list: List<AdminPaymentNumber>) {
+        try {
+            val array = JSONArray()
+            list.forEach { item ->
+                val obj = JSONObject().apply {
+                    put("id", item.id)
+                    put("method", item.method.name)
+                    put("number", item.number)
+                    put("agentLabel", item.agentLabel)
+                    put("isActive", item.isActive)
+                    put("createdAt", item.createdAt)
+                }
+                array.put(obj)
+            }
+            prefs.edit().putString(KEY_PAYMENT_NUMBERS_JSON, array.toString()).commit()
+        } catch (_: Exception) {}
     }
 
     private fun savePaymentNumbers(list: List<AdminPaymentNumber>) {
@@ -207,7 +315,12 @@ class AdminManager private constructor(context: Context) {
                 }
                 array.put(obj)
             }
-            prefs.edit().putString(KEY_PAYMENT_NUMBERS_JSON, array.toString()).apply()
+            val jsonStr = array.toString()
+            prefs.edit().putString(KEY_PAYMENT_NUMBERS_JSON, jsonStr).commit()
+            SharedDataStore.notifyPaymentNumbersChanged(appContext, jsonStr)
+            SharedDataStore.broadcastAndSync(appContext)
+            // Push directly to cloud bridge so all user devices receive the update immediately
+            SnxCloudSyncService.pushPaymentNumbersToCloud(appContext, jsonStr)
         } catch (_: Exception) {}
     }
 
@@ -252,19 +365,22 @@ class AdminManager private constructor(context: Context) {
     }
 
     /**
-     * Gets a dynamic deposit number for user deposit screen using round-robin / random distribution.
+     * Gets a dynamic deposit number for user deposit screen using random distribution.
+     * Selects a random active number added by Admin or fetched from Supabase Cloud.
      */
-    fun getActiveDepositNumber(method: PaymentMethod): String {
+    fun getRandomActiveDepositNumber(method: PaymentMethod): String {
         val activeList = _paymentNumbers.value.filter { it.method == method && it.isActive && it.number.isNotBlank() }
         if (activeList.isEmpty()) {
             return if (method == PaymentMethod.BKASH) "01712-348901" else "01822-334455"
         }
-        // Round robin distribution
-        val key = if (method == PaymentMethod.BKASH) KEY_BKASH_INDEX else KEY_NAGAD_INDEX
-        val currentIndex = prefs.getInt(key, 0)
-        val selected = activeList[currentIndex % activeList.size]
-        prefs.edit().putInt(key, (currentIndex + 1) % activeList.size).apply()
-        return selected.number
+        return activeList.random().number
+    }
+
+    /**
+     * Gets a dynamic deposit number for user deposit screen using random distribution.
+     */
+    fun getActiveDepositNumber(method: PaymentMethod): String {
+        return getRandomActiveDepositNumber(method)
     }
 
     private fun createDefaultPaymentNumbers(): List<AdminPaymentNumber> {
@@ -312,47 +428,7 @@ class AdminManager private constructor(context: Context) {
     private fun loadDepositRequests() {
         val raw = prefs.getString(KEY_DEPOSIT_REQUESTS_JSON, null)
         if (raw.isNullOrEmpty()) {
-            val defaults = listOf(
-                DepositRequest(
-                    id = "DEP8841",
-                    username = "Sakib77",
-                    userPhone = "01712-348901",
-                    method = PaymentMethod.BKASH,
-                    amount = 1000.0,
-                    agentNumberUsed = "01712-345678",
-                    userAccountNo = "01712-348901",
-                    trxId = "BK7823901X",
-                    status = TransactionStatus.PENDING,
-                    createdAt = "13 Sep, 10:45 AM"
-                ),
-                DepositRequest(
-                    id = "DEP7732",
-                    username = "RahimPro",
-                    userPhone = "01823-456789",
-                    method = PaymentMethod.NAGAD,
-                    amount = 500.0,
-                    agentNumberUsed = "01711-223344",
-                    userAccountNo = "01823-456789",
-                    trxId = "NG9012348A",
-                    status = TransactionStatus.PENDING,
-                    createdAt = "13 Sep, 11:15 AM"
-                ),
-                DepositRequest(
-                    id = "DEP6621",
-                    username = "TanvirGamer",
-                    userPhone = "01934-567890",
-                    method = PaymentMethod.BKASH,
-                    amount = 2500.0,
-                    agentNumberUsed = "01823-456789",
-                    userAccountNo = "01934-567890",
-                    trxId = "BK1122334Y",
-                    status = TransactionStatus.APPROVED,
-                    createdAt = "12 Sep, 04:30 PM",
-                    reviewNote = "Approved by Admin"
-                )
-            )
-            _depositRequests.value = defaults
-            saveDepositRequests(defaults)
+            _depositRequests.value = emptyList()
             return
         }
         try {
@@ -377,10 +453,46 @@ class AdminManager private constructor(context: Context) {
                 )
             }
             _depositRequests.value = list
-        } catch (_: Exception) {}
+        } catch (_: Exception) {
+            _depositRequests.value = emptyList()
+        }
     }
 
-    private fun saveDepositRequests(list: List<DepositRequest>) {
+    fun insertIncomingDeposit(req: DepositRequest) {
+        val current = _depositRequests.value
+        if (current.none { it.id == req.id || (it.trxId.isNotBlank() && it.trxId.equals(req.trxId, ignoreCase = true)) }) {
+            val updated = listOf(req) + current
+            _depositRequests.value = updated
+            saveDepositRequestsDirect(updated)
+        }
+    }
+
+    fun insertIncomingWithdrawal(req: WithdrawalRequest) {
+        val current = _withdrawalRequests.value
+        if (current.none { it.id == req.id || (it.trxId.isNotBlank() && it.trxId.equals(req.trxId, ignoreCase = true)) }) {
+            val updated = listOf(req) + current
+            _withdrawalRequests.value = updated
+            saveWithdrawRequestsDirect(updated)
+        }
+    }
+
+    fun updateDepositStatusLocally(id: String, status: TransactionStatus) {
+        val updated = _depositRequests.value.map {
+            if (it.id == id) it.copy(status = status) else it
+        }
+        _depositRequests.value = updated
+        saveDepositRequestsDirect(updated)
+    }
+
+    fun updateWithdrawStatusLocally(id: String, status: TransactionStatus) {
+        val updated = _withdrawalRequests.value.map {
+            if (it.id == id) it.copy(status = status) else it
+        }
+        _withdrawalRequests.value = updated
+        saveWithdrawRequestsDirect(updated)
+    }
+
+    private fun saveDepositRequestsDirect(list: List<DepositRequest>) {
         try {
             val array = JSONArray()
             list.take(50).forEach { item ->
@@ -401,6 +513,11 @@ class AdminManager private constructor(context: Context) {
             }
             prefs.edit().putString(KEY_DEPOSIT_REQUESTS_JSON, array.toString()).apply()
         } catch (_: Exception) {}
+    }
+
+    private fun saveDepositRequests(list: List<DepositRequest>) {
+        saveDepositRequestsDirect(list)
+        SharedDataStore.broadcastAndSync(appContext)
     }
 
     fun submitUserDepositRequest(
@@ -426,6 +543,12 @@ class AdminManager private constructor(context: Context) {
         val updated = listOf(req) + _depositRequests.value
         _depositRequests.value = updated
         saveDepositRequests(updated)
+
+        // Push directly to cloud bridge so Admin sees it in real-time
+        SnxCloudSyncService.pushDepositRequestDirect(appContext, req)
+
+        // Push directly to Admin app via ContentProvider IPC and Targeted Broadcast
+        SharedDataStore.submitDepositToAdmin(appContext, req)
         return req
     }
 
@@ -448,6 +571,17 @@ class AdminManager private constructor(context: Context) {
 
             creditUserBalance(req.userPhone, req.username, totalCredit, req.amount)
             updateTransactionStatus(req.userPhone, req.username, TransactionType.DEPOSIT, TransactionStatus.APPROVED)
+
+            // Push status update to Game Website app via IPC and Cloud Bridge
+            SharedDataStore.notifyDepositStatusChanged(
+                appContext,
+                req.id,
+                "APPROVED",
+                totalCredit,
+                req.userPhone,
+                req.username
+            )
+            SnxCloudSyncService.pushDepositStatusUpdate(appContext, req.id, TransactionStatus.APPROVED, "Approved by Admin")
             return true
         }
         return false
@@ -465,6 +599,16 @@ class AdminManager private constructor(context: Context) {
             _depositRequests.value = updated
             saveDepositRequests(updated)
             updateTransactionStatus(rejectedReq!!.userPhone, rejectedReq!!.username, TransactionType.DEPOSIT, TransactionStatus.REJECTED)
+
+            SharedDataStore.notifyDepositStatusChanged(
+                appContext,
+                rejectedReq!!.id,
+                "REJECTED",
+                0.0,
+                rejectedReq!!.userPhone,
+                rejectedReq!!.username
+            )
+            SnxCloudSyncService.pushDepositStatusUpdate(appContext, rejectedReq!!.id, TransactionStatus.REJECTED, reason)
             return true
         }
         return false
@@ -476,33 +620,7 @@ class AdminManager private constructor(context: Context) {
     private fun loadWithdrawRequests() {
         val raw = prefs.getString(KEY_WITHDRAW_REQUESTS_JSON, null)
         if (raw.isNullOrEmpty()) {
-            val defaults = listOf(
-                WithdrawalRequest(
-                    id = "WTH9901",
-                    username = "Sakib77",
-                    userPhone = "01712-348901",
-                    method = PaymentMethod.BKASH,
-                    amount = 500.0,
-                    targetAccountNo = "01712-348901",
-                    trxId = "WTH7891230A",
-                    status = TransactionStatus.PENDING,
-                    createdAt = "13 Sep, 11:30 AM"
-                ),
-                WithdrawalRequest(
-                    id = "WTH8812",
-                    username = "TanvirGamer",
-                    userPhone = "01934-567890",
-                    method = PaymentMethod.NAGAD,
-                    amount = 1200.0,
-                    targetAccountNo = "01934-567890",
-                    trxId = "WTH6789012B",
-                    status = TransactionStatus.APPROVED,
-                    createdAt = "12 Sep, 07:20 PM",
-                    reviewNote = "Paid via Nagad Merchant"
-                )
-            )
-            _withdrawalRequests.value = defaults
-            saveWithdrawRequests(defaults)
+            _withdrawalRequests.value = emptyList()
             return
         }
         try {
@@ -526,10 +644,12 @@ class AdminManager private constructor(context: Context) {
                 )
             }
             _withdrawalRequests.value = list
-        } catch (_: Exception) {}
+        } catch (_: Exception) {
+            _withdrawalRequests.value = emptyList()
+        }
     }
 
-    private fun saveWithdrawRequests(list: List<WithdrawalRequest>) {
+    private fun saveWithdrawRequestsDirect(list: List<WithdrawalRequest>) {
         try {
             val array = JSONArray()
             list.take(50).forEach { item ->
@@ -551,6 +671,11 @@ class AdminManager private constructor(context: Context) {
         } catch (_: Exception) {}
     }
 
+    private fun saveWithdrawRequests(list: List<WithdrawalRequest>) {
+        saveWithdrawRequestsDirect(list)
+        SharedDataStore.broadcastAndSync(appContext)
+    }
+
     fun submitUserWithdrawRequest(
         username: String,
         userPhone: String,
@@ -570,6 +695,12 @@ class AdminManager private constructor(context: Context) {
         val updated = listOf(req) + _withdrawalRequests.value
         _withdrawalRequests.value = updated
         saveWithdrawRequests(updated)
+
+        // Push directly to cloud bridge so Admin sees it in real-time
+        SnxCloudSyncService.pushWithdrawRequestDirect(appContext, req)
+
+        // Push directly to Admin app via IPC
+        SharedDataStore.submitWithdrawToAdmin(appContext, req)
         return req
     }
 
@@ -585,6 +716,16 @@ class AdminManager private constructor(context: Context) {
             _withdrawalRequests.value = updated
             saveWithdrawRequests(updated)
             updateTransactionStatus(approvedReq!!.userPhone, approvedReq!!.username, TransactionType.WITHDRAW, TransactionStatus.APPROVED)
+
+            SharedDataStore.notifyWithdrawStatusChanged(
+                appContext,
+                approvedReq!!.id,
+                "APPROVED",
+                approvedReq!!.amount,
+                approvedReq!!.userPhone,
+                approvedReq!!.username
+            )
+            SnxCloudSyncService.pushWithdrawStatusUpdate(appContext, approvedReq!!.id, TransactionStatus.APPROVED, "Dispatched & Confirmed by Admin")
             return true
         }
         return false
@@ -604,6 +745,16 @@ class AdminManager private constructor(context: Context) {
             // Refund the deducted amount back to user!
             refundUserBalance(reqToRefund!!.userPhone, reqToRefund!!.amount)
             updateTransactionStatus(reqToRefund!!.userPhone, reqToRefund!!.username, TransactionType.WITHDRAW, TransactionStatus.REJECTED)
+
+            SharedDataStore.notifyWithdrawStatusChanged(
+                appContext,
+                reqToRefund!!.id,
+                "REJECTED",
+                reqToRefund!!.amount,
+                reqToRefund!!.userPhone,
+                reqToRefund!!.username
+            )
+            SnxCloudSyncService.pushWithdrawStatusUpdate(appContext, reqToRefund!!.id, TransactionStatus.REJECTED, reason)
             return true
         }
         return false
@@ -623,59 +774,12 @@ class AdminManager private constructor(context: Context) {
     // 5. USER MANAGEMENT & BALANCE ADJUSTMENT
     // ==========================================
     fun getAllRegisteredUsers(): List<RegisteredAccount> {
-        val accounts = sessionManager.getRegisteredAccounts().toMutableList()
-        if (accounts.isEmpty()) {
-            val defaults = listOf(
-                RegisteredAccount(
-                    username = "Sakib77",
-                    phone = "01712-348901",
-                    email = "sakib77@gmail.com",
-                    password = "••••",
-                    balanceBDT = 1250.0,
-                    totalDeposited = 3000.0,
-                    totalWithdrawn = 1500.0,
-                    vipLevel = "VIP 2",
-                    registeredDate = "12 Sep 2026, 02:15 PM"
-                ),
-                RegisteredAccount(
-                    username = "RahimPro",
-                    phone = "01823-456789",
-                    email = "rahimpro@gmail.com",
-                    password = "••••",
-                    balanceBDT = 500.0,
-                    totalDeposited = 1000.0,
-                    totalWithdrawn = 200.0,
-                    vipLevel = "VIP 1",
-                    registeredDate = "10 Sep 2026, 04:30 PM"
-                ),
-                RegisteredAccount(
-                    username = "TanvirGamer",
-                    phone = "01934-567890",
-                    email = "tanvir@gmail.com",
-                    password = "••••",
-                    balanceBDT = 4500.0,
-                    totalDeposited = 10000.0,
-                    totalWithdrawn = 5000.0,
-                    vipLevel = "VIP 3",
-                    registeredDate = "08 Sep 2026, 09:10 AM"
-                ),
-                RegisteredAccount(
-                    username = "KamalBoss",
-                    phone = "01755-667788",
-                    email = "kamal@gmail.com",
-                    password = "••••",
-                    balanceBDT = 250.0,
-                    totalDeposited = 500.0,
-                    totalWithdrawn = 0.0,
-                    vipLevel = "VIP 1",
-                    registeredDate = "13 Sep 2026, 11:00 AM"
-                )
-            )
-            defaults.forEach { sessionManager.saveRegisteredAccount(it) }
-            accounts.addAll(defaults)
-        }
+        val mockNames = setOf("Sakib77", "RahimPro", "TanvirGamer", "KamalBoss")
+        val accounts = sessionManager.getRegisteredAccounts()
+            .filterNot { it.username in mockNames }
+            .toMutableList()
         val currentSession = sessionManager.getUserSession()
-        if (currentSession.isLoggedIn && accounts.none { it.phone == currentSession.phone }) {
+        if (currentSession.isLoggedIn && currentSession.username.isNotBlank() && accounts.none { (it.phone.isNotBlank() && it.phone == currentSession.phone) || it.username == currentSession.username }) {
             accounts.add(
                 RegisteredAccount(
                     username = currentSession.username,
@@ -686,11 +790,41 @@ class AdminManager private constructor(context: Context) {
                     totalDeposited = currentSession.totalDeposited,
                     totalWithdrawn = currentSession.totalWithdrawn,
                     vipLevel = currentSession.vipLevel,
-                    registeredDate = "Live Active User"
+                    registeredDate = "Live Active User",
+                    status = currentSession.status
                 )
             )
         }
         return accounts
+    }
+
+    fun loadRegisteredUsers() {
+        val users = getAllRegisteredUsers()
+        _registeredUsers.value = users
+    }
+
+    fun updateUserStatus(phone: String, newStatus: String): Boolean {
+        val cleanPhone = phone.trim()
+        val accounts = sessionManager.getRegisteredAccounts().map {
+            if (it.phone == cleanPhone) it.copy(status = newStatus) else it
+        }
+        sessionManager.saveRegisteredAccounts(accounts)
+
+        val currentSession = sessionManager.getUserSession()
+        if (currentSession.phone == cleanPhone) {
+            sessionManager.saveUserSession(currentSession.copy(status = newStatus))
+        }
+
+        loadRegisteredUsers()
+        SharedDataStore.notifyUserStatusChanged(appContext, cleanPhone, newStatus)
+        return true
+    }
+
+    fun adjustUserBalance(phone: String, delta: Double, note: String = ""): Boolean {
+        val cleanPhone = phone.trim()
+        val current = _registeredUsers.value.find { it.phone == cleanPhone } ?: return false
+        val newBalance = (current.balanceBDT + delta).coerceAtLeast(0.0)
+        return updateUserBalance(cleanPhone, newBalance)
     }
 
     fun updateUserBalance(phone: String, newBalance: Double): Boolean {
@@ -698,15 +832,16 @@ class AdminManager private constructor(context: Context) {
         val accounts = sessionManager.getRegisteredAccounts().map {
             if (it.phone == cleanPhone) it.copy(balanceBDT = newBalance) else it
         }
-        sessionManager.getRegisteredAccounts() // ensure loaded
-        // Save back via session manager
-        accounts.forEach { sessionManager.saveRegisteredAccount(it) }
+        sessionManager.saveRegisteredAccounts(accounts)
 
         // Also check if current session matches
         val currentSession = sessionManager.getUserSession()
         if (currentSession.phone == cleanPhone) {
             sessionManager.saveUserSession(currentSession.copy(balanceBDT = newBalance))
         }
+
+        loadRegisteredUsers()
+        SharedDataStore.notifyBalanceAdjusted(appContext, cleanPhone, newBalance)
         return true
     }
 
@@ -730,7 +865,8 @@ class AdminManager private constructor(context: Context) {
                 )
             } else it
         }
-        accounts.forEach { sessionManager.saveRegisteredAccount(it) }
+        sessionManager.saveRegisteredAccounts(accounts)
+        loadRegisteredUsers()
     }
 
     private fun refundUserBalance(phone: String, amount: Double) {
@@ -747,7 +883,8 @@ class AdminManager private constructor(context: Context) {
                 it.copy(balanceBDT = it.balanceBDT + amount)
             } else it
         }
-        accounts.forEach { sessionManager.saveRegisteredAccount(it) }
+        sessionManager.saveRegisteredAccounts(accounts)
+        loadRegisteredUsers()
     }
 
     // ==========================================
@@ -777,7 +914,136 @@ class AdminManager private constructor(context: Context) {
                 put("aviatorGameTitle", newConfig.aviatorGameTitle)
                 put("isMaintenanceMode", newConfig.isMaintenanceMode)
             }
-            prefs.edit().putString(KEY_SITE_CONFIG_JSON, obj.toString()).apply()
+            val jsonStr = obj.toString()
+            prefs.edit().putString(KEY_SITE_CONFIG_JSON, jsonStr).apply()
+            SharedDataStore.notifySiteConfigChanged(appContext, jsonStr)
+        } catch (_: Exception) {}
+    }
+
+    // ==========================================
+    // 7. DYNAMIC GAME MANAGEMENT
+    // ==========================================
+    fun loadGames() {
+        val raw = prefs.getString(KEY_GAMES_LIST_JSON, null)
+        if (raw.isNullOrEmpty()) {
+            val defaults = getDefaultGamesList()
+            _gamesList.value = defaults
+            saveGamesListDirect(defaults)
+        } else {
+            try {
+                val array = JSONArray(raw)
+                val list = mutableListOf<GameItem>()
+                for (i in 0 until array.length()) {
+                    val obj = array.getJSONObject(i)
+                    val catStr = obj.optString("category", "SLOTS")
+                    val category = try {
+                        GameCategory.valueOf(catStr)
+                    } catch (_: Exception) {
+                        GameCategory.SLOTS
+                    }
+                    list.add(
+                        GameItem(
+                            id = obj.getString("id"),
+                            titleBn = obj.getString("titleBn"),
+                            titleEn = obj.getString("titleEn"),
+                            category = category,
+                            badge = if (obj.isNull("badge") || obj.optString("badge").isEmpty()) null else obj.optString("badge"),
+                            iconEmoji = obj.optString("iconEmoji", "🎰"),
+                            minBet = obj.optDouble("minBet", 10.0),
+                            playersCount = obj.optInt("playersCount", 1420),
+                            imageUrl = obj.optString("imageUrl", ""),
+                            isActive = obj.optBoolean("isActive", true),
+                            serverStatus = GameServerStatus.fromCode(obj.optString("serverStatus", "ACTIVE"))
+                        )
+                    )
+                }
+                _gamesList.value = list
+            } catch (_: Exception) {
+                val defaults = getDefaultGamesList()
+                _gamesList.value = defaults
+            }
+        }
+    }
+
+    fun getDefaultGamesList(): List<GameItem> = listOf(
+        GameItem("slot_777", "মেগা জ্যাকপট ৭৭৭", "Mega Jackpot 777", GameCategory.SLOTS, "HOT", "🎰", 10.0, 3420),
+        GameItem("aviator_crash", "SPRIBE AVIATOR", "SPRIBE AVIATOR", GameCategory.CRASH, "HOT", "✈️", 50.0, 9480),
+        GameItem("cricket_live", "বিপিএল ক্রিকেট লাইভ প্রেডিকশন", "BPL Cricket Live", GameCategory.SPORTS, "LIVE", "🏏", 50.0, 4120),
+        GameItem("lucky_wheel", "দৈনিক লাকি স্পিন হুইল", "Daily Lucky Spin", GameCategory.HOT, "BONUS", "🎡", 0.0, 8910),
+        GameItem("teen_patti", "তিন পাত্তি রয়েল", "Teen Patti Royal", GameCategory.CASINO, "HOT", "🃏", 20.0, 1850),
+        GameItem("dragon_tiger", "ড্রাগন ভার্সেস টাইগার", "Dragon vs Tiger", GameCategory.CASINO, "LIVE", "🐉", 20.0, 2310),
+        GameItem("fruit_frenzy", "ফ্রুট স্লট ব্লাস্ট", "Fruit Slot Blast", GameCategory.SLOTS, null, "🍒", 10.0, 980),
+        GameItem("roulette_pro", "ইউরোপিয়ান রুলেট", "European Roulette", GameCategory.TABLE, null, "🎯", 50.0, 1150),
+        GameItem("fish_hunter", "ওশান কিং ফিশ শুটার", "Ocean King Fish Hunter", GameCategory.HOT, "POPULAR", "🐟", 10.0, 1640),
+        GameItem("dice_roll", "লাকি ডাইস হাই-লো", "Lucky Dice Hi-Lo", GameCategory.TABLE, null, "🎲", 10.0, 820),
+        GameItem("gold_rush_slot", "গোল্ড রাশ মেগাওয়েস", "Gold Rush Megaways", GameCategory.SLOTS, "JACKPOT", "💰", 20.0, 2740),
+        GameItem("crazy_time", "ক্রেজি টাইম শো", "Crazy Time Live Show", GameCategory.CASINO, "LIVE", "🎪", 50.0, 6200)
+    )
+
+    fun addGame(game: GameItem): Boolean {
+        val list = _gamesList.value.toMutableList()
+        list.add(0, game)
+        _gamesList.value = list
+        saveGamesListDirect(list)
+        return true
+    }
+
+    fun updateGame(updated: GameItem): Boolean {
+        val list = _gamesList.value.map {
+            if (it.id == updated.id) updated else it
+        }
+        _gamesList.value = list
+        saveGamesListDirect(list)
+        return true
+    }
+
+    fun deleteGame(gameId: String): Boolean {
+        val list = _gamesList.value.filterNot { it.id == gameId }
+        _gamesList.value = list
+        saveGamesListDirect(list)
+        return true
+    }
+
+    fun toggleGameActive(gameId: String): Boolean {
+        val list = _gamesList.value.map {
+            if (it.id == gameId) it.copy(isActive = !it.isActive) else it
+        }
+        _gamesList.value = list
+        saveGamesListDirect(list)
+        return true
+    }
+
+    fun setGameServerStatus(gameId: String, status: GameServerStatus): Boolean {
+        val list = _gamesList.value.map {
+            if (it.id == gameId) it.copy(serverStatus = status, isActive = (status != GameServerStatus.OFFLINE)) else it
+        }
+        _gamesList.value = list
+        saveGamesListDirect(list)
+        return true
+    }
+
+    private fun saveGamesListDirect(list: List<GameItem>) {
+        try {
+            val array = JSONArray()
+            list.forEach { g ->
+                val obj = JSONObject().apply {
+                    put("id", g.id)
+                    put("titleBn", g.titleBn)
+                    put("titleEn", g.titleEn)
+                    put("category", g.category.name)
+                    put("badge", g.badge ?: "")
+                    put("iconEmoji", g.iconEmoji)
+                    put("minBet", g.minBet)
+                    put("playersCount", g.playersCount)
+                    put("imageUrl", g.imageUrl)
+                    put("isActive", g.isActive)
+                    put("serverStatus", g.serverStatus.code)
+                }
+                array.put(obj)
+            }
+            val jsonStr = array.toString()
+            prefs.edit().putString(KEY_GAMES_LIST_JSON, jsonStr).apply()
+            SharedDataStore.notifyGamesChanged(appContext, jsonStr)
         } catch (_: Exception) {}
     }
 }

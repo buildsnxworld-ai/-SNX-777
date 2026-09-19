@@ -38,10 +38,11 @@ import kotlinx.coroutines.delay
 fun AppHeader(
     userProfile: UserProfile,
     language: AppLanguage,
-    onToggleLanguage: () -> Unit,
+    onToggleLanguage: (() -> Unit)? = null,
     onOpenAuth: (Int) -> Unit,
     onOpenDeposit: () -> Unit,
     onOpenSupport: () -> Unit,
+    siteConfig: com.example.data.SiteCustomization? = null,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -261,12 +262,17 @@ fun AppHeader(
                     .weight(1f)
                     .horizontalScroll(marqueeScrollState, enabled = false)
             ) {
-                Text(
-                    text = StringRes.t(
+                val tickerText = if (!siteConfig?.marqueeTicker.isNullOrBlank()) {
+                    siteConfig!!.marqueeTicker + "         "
+                } else {
+                    StringRes.t(
                         language,
                         "🔥 স্বাগতম SNX 777 এ! নতুন একাউন্ট খুললেই ১০০% ওয়েলকাম বোনাস! ★ সর্বনিম্ন ৩০০ টাকা ডিপোজিটে ৫% ইনস্ট্যান্ট ক্যাশ বোনাস! ★ সাপ্তাহিক ধামাকা রিওয়ার্ড ও ক্যাশব্যাক! ★ দৈনিক সম্পূর্ণ ফ্রি লাকি স্পিন! ★ কোনো প্রকার টার্নওভার নাই! ★ বিকাশ ও নগদে ২৪/৭ দ্রুত সেন্ড মানি করুন।         ",
                         "🔥 Welcome to SNX 777! 100% Welcome Bonus on register! ★ 5% instant cash bonus on min ৳300 deposit! ★ Weekly rewards & cashback! ★ Daily 100% Free Lucky Spin! ★ ZERO turnover requirement! ★ Fast Send Money via bKash & Nagad 24/7.         "
-                    ),
+                    )
+                }
+                Text(
+                    text = tickerText,
                     color = GoldLight,
                     fontSize = 11.sp,
                     maxLines = 1,

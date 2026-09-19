@@ -1,0 +1,50 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Center Cyber Shield Outline -->
+    <path
+        android:strokeWidth="2.5"
+        android:strokeColor="#38BDF8"
+        android:fillColor="#151F33"
+        android:pathData="M54,22 L78,32 C78,58 54,78 54,78 C54,78 30,58 30,32 Z" />
+
+    <!-- Inner Golden Shield Accent -->
+    <path
+        android:strokeWidth="1.5"
+        android:strokeColor="#F59E0B"
+        android:pathData="M54,28 L72,36 C72,54 54,70 54,70 C54,70 36,54 36,36 Z" />
+
+    <!-- Admin Keyhole / Command Center Emblem -->
+    <!-- Circular Head -->
+    <path
+        android:fillColor="#F59E0B"
+        android:pathData="M54,42 m-5,0 a5,5 0 1,1 10,0 a5,5 0 1,1 -10,0" />
+
+    <!-- Keyhole stem / Pillar -->
+    <path
+        android:fillColor="#F59E0B"
+        android:pathData="M51.5,44 L56.5,44 L58,56 L50,56 Z" />
+
+    <!-- Crown / Admin Star Indicator -->
+    <path
+        android:fillColor="#38BDF8"
+        android:pathData="M54,16 L56,20 L60,20 L57,23 L58,27 L54,24 L50,27 L51,23 L48,20 L52,20 Z" />
+
+    <!-- Futuristic Tech Grid Elements -->
+    <path
+        android:strokeWidth="1.5"
+        android:strokeColor="#0EA5E9"
+        android:pathData="M24,54 L20,54 M84,54 L88,54 M54,82 L54,86" />
+
+    <path
+        android:fillColor="#38BDF8"
+        android:pathData="M24,54 m-2,0 a2,2 0 1,1 4,0 a2,2 0 1,1 -4,0" />
+    <path
+        android:fillColor="#38BDF8"
+        android:pathData="M84,54 m-2,0 a2,2 0 1,1 4,0 a2,2 0 1,1 -4,0" />
+
+</vector>

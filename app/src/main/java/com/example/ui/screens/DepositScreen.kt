@@ -39,6 +39,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.R
 import com.example.data.AdminManager
+import com.example.data.SharedDataStore
+import com.example.data.SnxCloudSyncService
 import com.example.model.AppLanguage
 import com.example.model.PaymentMethod
 import com.example.model.UserProfile
@@ -60,12 +62,47 @@ fun DepositScreen(
     val focusManager = LocalFocusManager.current
 
     val adminManager = remember { AdminManager.getInstance(context) }
+    val paymentNumbers by adminManager.paymentNumbers.collectAsState()
     var selectedMethod by remember { mutableStateOf(PaymentMethod.BKASH) }
-    var currentDepositNumber by remember(selectedMethod) {
-        mutableStateOf(adminManager.getActiveDepositNumber(selectedMethod))
+    var currentDepositNumber by remember { mutableStateOf("") }
+
+    // Pick a random number once when user enters the page or switches method.
+    // It will NEVER change or fluctuate while the user remains on the deposit page.
+    fun pickRandomNumberForMethod(method: PaymentMethod, numbers: List<com.example.data.AdminPaymentNumber>) {
+        val activeMatches = numbers.filter { it.method == method && it.isActive && it.number.isNotBlank() }
+        currentDepositNumber = if (activeMatches.isNotEmpty()) {
+            activeMatches.random().number
+        } else {
+            adminManager.getRandomActiveDepositNumber(method)
+        }
+    }
+
+    // Only pick when entering the page / initial composition
+    LaunchedEffect(Unit) {
+        adminManager.reloadFromStorage()
+        SharedDataStore.pullFromOtherApp(context)
+        SnxCloudSyncService.pullFromCloud(context)
+        adminManager.reloadFromStorage()
+        if (currentDepositNumber.isBlank()) {
+            pickRandomNumberForMethod(selectedMethod, adminManager.paymentNumbers.value)
+        }
+    }
+
+    // When user explicitly switches method (bKash <-> Nagad), pick a random number for that method
+    LaunchedEffect(selectedMethod) {
+        pickRandomNumberForMethod(selectedMethod, adminManager.paymentNumbers.value)
+    }
+
+    // When payment numbers update from Admin or Cloud, ensure current deposit number is active and valid
+    LaunchedEffect(paymentNumbers) {
+        val activeMatches = paymentNumbers.filter { it.method == selectedMethod && it.isActive && it.number.isNotBlank() }
+        if (currentDepositNumber.isBlank() || (activeMatches.isNotEmpty() && activeMatches.none { it.number == currentDepositNumber })) {
+            pickRandomNumberForMethod(selectedMethod, paymentNumbers)
+        }
     }
     var selectedAmount by remember { mutableStateOf(300.0) }
     var customAmountText by remember { mutableStateOf("") }
+    var senderPhoneInput by remember { mutableStateOf(userProfile.phone) }
     var trxIdInput by remember { mutableStateOf("") }
     var selectedBonus by remember { mutableStateOf("5% Bonus on Deposit (৳300+)") }
 
@@ -197,7 +234,7 @@ fun DepositScreen(
             border = CardDefaults.outlinedCardBorder().copy(brush = Brush.linearGradient(listOf(Color(selectedMethod.colorHex).copy(alpha = 0.7f), CasinoBorderSubtle)))
         ) {
             Column(modifier = Modifier.padding(14.dp)) {
-                val activeNumber = currentDepositNumber.ifEmpty { adminManager.getActiveDepositNumber(selectedMethod) }
+                val activeNumber = if (currentDepositNumber.isNotBlank()) currentDepositNumber else adminManager.getActiveDepositNumber(selectedMethod)
                 if (activeNumber.isNotEmpty()) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -210,19 +247,12 @@ fun DepositScreen(
                         ) {
                             Column {
                                 Text(
-                                    text = StringRes.t(
-                                        language,
-                                        if (selectedMethod == PaymentMethod.BKASH)
-                                            "এই নাম্বারে শুধু মাত্র বিকাশ থেকে সেন্ডমানি গ্ৰহণ করা হয়"
-                                        else
-                                            "এই নাম্বারে শুধু মাত্র নগদ থেকে সেন্ডমানি গ্ৰহণ করা হয়",
-                                        if (selectedMethod == PaymentMethod.BKASH)
-                                            "Only bKash Send Money is accepted at this number"
-                                        else
-                                            "Only Nagad Send Money is accepted at this number"
-                                    ),
+                                    text = if (selectedMethod == PaymentMethod.BKASH)
+                                        "এই নাম্বারে শুধুমাত্র বিকাশ থেকে সেন্ড মানি গ্রহণ করা হয়"
+                                    else
+                                        "এই নাম্বারে শুধুমাত্র নগদ থেকে সেন্ড মানি গ্রহণ করা হয়",
                                     color = Color.White,
-                                    fontSize = 12.sp,
+                                    fontSize = 12.5.sp,
                                     fontWeight = FontWeight.ExtraBold
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
@@ -488,15 +518,41 @@ fun DepositScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Step 3: TrxID
+        // Step 3: Sender Account Number & TrxID
         Text(
-            text = StringRes.t(language, "৩. ট্রানজেকশন আইডি (TrxID) প্রদান করুন", "3. Enter Transaction ID (TrxID)"),
+            text = StringRes.t(language, "৩. আপনার প্রেরক নম্বর ও ট্রানজেকশন আইডি (TrxID)", "3. Your Sender Number & Transaction ID"),
             color = GoldLight,
             fontSize = 14.sp,
             fontWeight = FontWeight.Bold
         )
 
         Spacer(modifier = Modifier.height(8.dp))
+
+        OutlinedTextField(
+            value = senderPhoneInput,
+            onValueChange = { senderPhoneInput = it },
+            label = {
+                Text(
+                    if (selectedMethod == PaymentMethod.BKASH)
+                        StringRes.t(language, "আপনার বিকাশ নম্বর (যেখান থেকে টাকা পাঠিয়েছেন)", "Your bKash Number (Sender)")
+                    else
+                        StringRes.t(language, "আপনার নগদ নম্বর (যেখান থেকে টাকা পাঠিয়েছেন)", "Your Nagad Number (Sender)")
+                )
+            },
+            placeholder = { Text("01XXXXXXXXX", color = Slate500) },
+            leadingIcon = { Icon(Icons.Default.PhoneAndroid, contentDescription = null, tint = GoldLight) },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth().testTag("input_deposit_sender_phone"),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = GoldPrimary,
+                unfocusedBorderColor = CasinoBorderSubtle,
+                focusedTextColor = Slate100,
+                unfocusedTextColor = Slate100
+            )
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
 
         OutlinedTextField(
             value = trxIdInput,
@@ -524,12 +580,13 @@ fun DepositScreen(
                     onShowToast(if (language == AppLanguage.BN) "সর্বনিম্ন ডিপোজিট ৩০০ টাকা" else "Minimum deposit is ৳300")
                     return@Button
                 }
+                val phone = senderPhoneInput.trim().ifEmpty { userProfile.phone }
                 if (trxIdInput.trim().length < 5) {
                     onShowToast(if (language == AppLanguage.BN) "অনুগ্রহ করে সঠিক ট্রানজেকশন আইডি (TrxID) দিন" else "Please enter valid TrxID")
                     return@Button
                 }
 
-                if (onSubmitDeposit(selectedMethod, amt, "", trxIdInput.trim())) {
+                if (onSubmitDeposit(selectedMethod, amt, phone, trxIdInput.trim())) {
                     focusManager.clearFocus()
                     keyboardController?.hide()
                     trxIdInput = ""

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#040711"
+        android:pathData="M0,0h108v108h-108z" />
+    <path
+        android:fillColor="#00F0FF"
+        android:pathData="M54,14 L88,34 L88,74 L54,94 L20,74 L20,34 Z"
+        android:strokeWidth="2"
+        android:strokeColor="#00F0FF" />
+    <path
+        android:fillColor="#090E1B"
+        android:pathData="M54,20 L82,36 L82,72 L54,88 L26,72 L26,36 Z" />
+    <!-- Radar Waves -->
+    <path
+        android:strokeColor="#00F0FF"
+        android:strokeWidth="3"
+        android:pathData="M38,62 C38,53 45,46 54,46 C63,46 70,53 70,62" />
+    <path
+        android:strokeColor="#00FF66"
+        android:strokeWidth="3"
+        android:pathData="M44,62 C44,56 48,52 54,52 C60,52 64,56 64,62" />
+    <!-- Signal Antenna Point -->
+    <path
+        android:fillColor="#00FF66"
+        android:pathData="M54,60 A3,3 0 1,1 54,66 A3,3 0 1,1 54,60" />
+    <path
+        android:strokeColor="#BD00FF"
+        android:strokeWidth="2"
+        android:pathData="M54,66 L54,78 M46,78 L62,78" />
+</vector>

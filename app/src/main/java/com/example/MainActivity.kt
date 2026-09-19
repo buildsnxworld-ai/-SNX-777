@@ -30,10 +30,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.data.SnxViewModel
 import com.example.model.AppLanguage
+import com.example.ui.components.ApkDownloadModal
 import com.example.ui.components.AppBottomBar
 import com.example.ui.components.AppHeader
 import com.example.ui.components.AuthModal
 import com.example.ui.components.CustomerSupportModal
+import com.example.ui.components.GameServerNoticeModal
 import com.example.ui.components.InsufficientBalanceModal
 import com.example.ui.components.NoInternetOverlay
 import com.example.ui.components.PromotionalAdsModal
@@ -45,6 +47,10 @@ import com.example.ui.games.LuckyWheelGame
 import com.example.ui.games.SlotMachineGame
 import com.example.ui.games.TeenPattiGame
 import com.example.ui.screens.*
+import com.example.admin.AdminAppRoot
+import com.example.data.SnxCloudSyncService
+import com.example.signal.SignalScreen
+import com.example.signal.SignalViewModel
 import com.example.ui.theme.*
 import com.example.util.NetworkMonitor
 
@@ -52,6 +58,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        SnxCloudSyncService.startAutoSync(this)
         setContent {
             MyApplicationTheme {
                 SnxApp()
@@ -86,6 +93,13 @@ fun SnxApp(viewModel: SnxViewModel = viewModel()) {
     val jackpotPool by viewModel.jackpotPool.collectAsStateWithLifecycle()
     val transactions by viewModel.transactions.collectAsStateWithLifecycle()
     val toastMessage by viewModel.toastMessage.collectAsStateWithLifecycle()
+    val dynamicGames by viewModel.dynamicGames.collectAsStateWithLifecycle()
+    val siteConfig by viewModel.siteConfig.collectAsStateWithLifecycle()
+    val gameServerNotice by viewModel.gameServerNotice.collectAsStateWithLifecycle()
+
+    var isApkDownloadModalOpen by remember { mutableStateOf(false) }
+
+    val currentGamesList = if (dynamicGames.isNotEmpty()) dynamicGames else viewModel.allGames
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -96,6 +110,7 @@ fun SnxApp(viewModel: SnxViewModel = viewModel()) {
                 language = language,
                 onToggleLanguage = { viewModel.toggleLanguage() },
                 onOpenAuth = { tab -> viewModel.openAuthModal(tab) },
+                siteConfig = siteConfig,
                 onOpenDeposit = {
                     if (!userProfile.isLoggedIn) {
                         viewModel.showToast(
@@ -140,7 +155,7 @@ fun SnxApp(viewModel: SnxViewModel = viewModel()) {
             // Main Screens based on active tab
             when (activeTab) {
                 0 -> HomeScreen(
-                    games = viewModel.allGames,
+                    games = currentGamesList,
                     selectedCategory = selectedCategory,
                     onSelectCategory = { viewModel.setCategory(it) },
                     jackpotPool = jackpotPool,
@@ -159,7 +174,7 @@ fun SnxApp(viewModel: SnxViewModel = viewModel()) {
                     onInviteShared = { viewModel.recordFriendInvite() }
                 )
                 1 -> GamesScreen(
-                    games = viewModel.allGames,
+                    games = currentGamesList,
                     selectedCategory = selectedCategory,
                     onSelectCategory = { viewModel.setCategory(it) },
                     language = language,
@@ -195,6 +210,7 @@ fun SnxApp(viewModel: SnxViewModel = viewModel()) {
                     onClaimDailyBonus = { viewModel.claimDailyBonus() },
                     onOpenSupport = { viewModel.openSupportModal() },
                     onShowToast = { viewModel.showToast(it) },
+                    onOpenApkDownload = { isApkDownloadModalOpen = true },
                     onClaimCommission = { viewModel.claimReferralCommission() },
                     onApplyCoupon = { viewModel.applyDiscountCoupon(it) }
                 )
@@ -303,6 +319,25 @@ fun SnxApp(viewModel: SnxViewModel = viewModel()) {
                 currentBalance = userProfile.balanceBDT,
                 onGoToDeposit = { viewModel.goToDepositFromGameModal() },
                 onDismiss = { viewModel.closeInsufficientBalanceModal() }
+            )
+
+            // User Website APK Build & Download Information Modal
+            ApkDownloadModal(
+                isOpen = isApkDownloadModalOpen,
+                language = language,
+                onDismiss = { isApkDownloadModalOpen = false },
+                onShowToast = { viewModel.showToast(it) }
+            )
+
+            // Dynamic Game Server Maintenance / Error Status Modal
+            GameServerNoticeModal(
+                notice = gameServerNotice,
+                language = language,
+                onDismiss = { viewModel.dismissGameServerNotice() },
+                onOpenSupport = {
+                    viewModel.dismissGameServerNotice()
+                    viewModel.openSupportModal()
+                }
             )
 
             // Floating Toast notification

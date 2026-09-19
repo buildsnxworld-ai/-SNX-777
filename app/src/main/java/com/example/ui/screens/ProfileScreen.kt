@@ -42,12 +42,13 @@ fun ProfileScreen(
     userProfile: UserProfile,
     transactions: List<TransactionRecord>,
     language: AppLanguage,
-    onToggleLanguage: () -> Unit,
+    onToggleLanguage: (() -> Unit)? = null,
     onOpenAuth: (Int) -> Unit,
     onLogout: () -> Unit,
     onClaimDailyBonus: () -> Unit,
     onOpenSupport: () -> Unit,
     onShowToast: (String) -> Unit,
+    onOpenApkDownload: (() -> Unit)? = null,
     onClaimCommission: (() -> Unit)? = null,
     onApplyCoupon: ((String) -> Unit)? = null,
     modifier: Modifier = Modifier
@@ -235,17 +236,6 @@ fun ProfileScreen(
             border = CardDefaults.outlinedCardBorder().copy(brush = Brush.linearGradient(listOf(CasinoBorderSubtle, CasinoBorderSubtle)))
         ) {
             Column {
-                // Language Switch Row
-                ProfileOptionRow(
-                    icon = Icons.Default.Language,
-                    title = StringRes.t(language, "ভাষা পরিবর্তন (Language)", "Change Language"),
-                    subtitle = if (language == AppLanguage.BN) "বাংলা সক্রিয়" else "English Active",
-                    onClick = onToggleLanguage,
-                    testTag = "option_language"
-                )
-
-                HorizontalDivider(color = CasinoBorderSubtle)
-
                 // Claim Daily Bonus (চরকি ১৳ - ২০০৳)
                 ProfileOptionRow(
                     icon = Icons.Default.CardGiftcard,
@@ -277,27 +267,27 @@ fun ProfileScreen(
                     onClick = onOpenSupport,
                     testTag = "option_support"
                 )
-
-                HorizontalDivider(color = CasinoBorderSubtle)
-
-                // Standalone Admin Panel Direct Entry
-                ProfileOptionRow(
-                    icon = Icons.Default.AdminPanelSettings,
-                    title = StringRes.t(language, "এডমিন কন্ট্রোল প্যানেল", "Admin Control Panel"),
-                    subtitle = StringRes.t(language, "স্বতন্ত্র এডমিন অ্যাপ চালু করুন (SNX ADMIN)", "Launch standalone admin dashboard"),
-                    onClick = {
-                        val intent = Intent(context, com.example.admin.AdminMainActivity::class.java).apply {
-                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        }
-                        context.startActivity(intent)
-                    },
-                    testTag = "option_open_admin_panel"
-                )
             }
         }
 
-        // Recent All Transactions (Only displayed when real transactions exist)
-        if (transactions.isNotEmpty()) {
+        // Real Transaction History for Current User Only:
+        // Only show transactions belonging strictly to the currently logged in user (matching username or phone).
+        // A new account or any other user will NEVER see anyone else's transactions.
+        val myTransactions = remember(transactions, userProfile.username, userProfile.phone, userProfile.isLoggedIn) {
+            if (!userProfile.isLoggedIn) {
+                emptyList()
+            } else {
+                val currentName = userProfile.username.trim()
+                val currentPhone = userProfile.phone.trim()
+                transactions.filter { record ->
+                    val matchName = currentName.isNotBlank() && record.username.isNotBlank() && record.username.trim().equals(currentName, ignoreCase = true)
+                    val matchPhone = currentPhone.isNotBlank() && record.userPhone.isNotBlank() && record.userPhone.trim() == currentPhone
+                    matchName || matchPhone
+                }
+            }
+        }
+
+        if (userProfile.isLoggedIn) {
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
@@ -309,8 +299,30 @@ fun ProfileScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                transactions.take(10).forEach { item ->
+            if (myTransactions.isEmpty()) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = CardDefaults.cardColors(containerColor = Slate800),
+                    border = CardDefaults.outlinedCardBorder().copy(brush = Brush.linearGradient(listOf(CasinoBorderSubtle, CasinoBorderSubtle)))
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = StringRes.t(language, "আপনার একাউন্টে এখনো কোনো লেনদেন সম্পন্ন হয়নি", "No transactions yet on your account"),
+                            color = Slate400,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    myTransactions.take(15).forEach { item ->
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(10.dp),
@@ -361,6 +373,7 @@ fun ProfileScreen(
                                 )
                             }
                         }
+                    }
                     }
                 }
             }

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#0D1117"
+        android:pathData="M0,0h108v108h-108z" />
+    <path
+        android:fillColor="#1E293B"
+        android:pathData="M54,12 L92,26 L92,54 C92,76 76,95 54,100 C32,95 16,76 16,54 L16,26 Z" />
+    <path
+        android:fillColor="#3B82F6"
+        android:pathData="M54,18 L86,30 L86,54 C86,72 73,88 54,93 C35,88 22,72 22,54 L22,30 Z" />
+    <!-- Gear/Lock/Control Icon inside -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,34 C49.6,34 46,37.6 46,42 L46,46 L43,46 C41.3,46 40,47.3 40,49 L40,65 C40,66.7 41.3,68 43,68 L65,68 C66.7,68 68,66.7 68,65 L68,49 C68,47.3 66.7,46 65,46 L62,46 L62,42 C62,37.6 58.4,34 54,34 Z M54,38 C56.2,38 58,39.8 58,42 L58,46 L50,46 L50,42 C50,39.8 51.8,38 54,38 Z" />
+</vector>

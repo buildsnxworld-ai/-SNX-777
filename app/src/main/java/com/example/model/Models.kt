@@ -20,7 +20,8 @@ data class UserProfile(
     val pendingCouponCode: String? = null,
     val lastDailySpinDate: String? = null,
     val lastDailySpinTimestamp: Long = 0L,
-    val lastWeeklyCashbackClaimDate: String? = null
+    val lastWeeklyCashbackClaimDate: String? = null,
+    val status: String = "ACTIVE"
 )
 
 enum class GameCategory(val bn: String, val en: String, val icon: String) {
@@ -33,6 +34,19 @@ enum class GameCategory(val bn: String, val en: String, val icon: String) {
     TABLE("টেবিল গেম", "Table", "🎲")
 }
 
+enum class GameServerStatus(val code: String, val bn: String, val en: String, val colorHex: Long) {
+    ACTIVE("ACTIVE", "সক্রিয়", "Active", 0xFF00E676),
+    SERVER_UPDATE("SERVER_UPDATE", "সার্ভার আপডেট", "Server Update", 0xFFFF9800),
+    SERVER_ERROR("SERVER_ERROR", "সার্ভার এরর", "Server Error", 0xFFEF4444),
+    OFFLINE("OFFLINE", "নিষ্ক্রিয়/বন্ধ", "Offline", 0xFF64748B);
+
+    companion object {
+        fun fromCode(code: String?): GameServerStatus {
+            return values().firstOrNull { it.code.equals(code, ignoreCase = true) } ?: ACTIVE
+        }
+    }
+}
+
 data class GameItem(
     val id: String,
     val titleBn: String,
@@ -41,7 +55,10 @@ data class GameItem(
     val badge: String? = null,
     val iconEmoji: String,
     val minBet: Double = 10.0,
-    val playersCount: Int = 1420
+    val playersCount: Int = 1420,
+    val imageUrl: String = "",
+    val isActive: Boolean = true,
+    val serverStatus: GameServerStatus = GameServerStatus.ACTIVE
 )
 
 enum class PaymentMethod(val displayName: String, val colorHex: Long, val number: String) {
@@ -57,7 +74,9 @@ data class TransactionRecord(
     val accountNo: String,
     val trxId: String,
     val status: TransactionStatus,
-    val timeFormatted: String
+    val timeFormatted: String,
+    val username: String = "",
+    val userPhone: String = ""
 )
 
 enum class TransactionType(val bn: String, val en: String) {

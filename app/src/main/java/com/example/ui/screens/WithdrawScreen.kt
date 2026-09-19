@@ -53,8 +53,18 @@ fun WithdrawScreen(
     var accountType by remember { mutableStateOf("Personal") } // Personal / Agent
 
     val quickAmounts = listOf(500, 1000, 2000, 5000, 10000)
-    val pastWithdrawals = remember(transactions) {
-        transactions.filter { it.type == TransactionType.WITHDRAW }
+    val pastWithdrawals = remember(transactions, userProfile.username, userProfile.phone, userProfile.isLoggedIn) {
+        if (!userProfile.isLoggedIn) {
+            emptyList()
+        } else {
+            val currentName = userProfile.username.trim()
+            val currentPhone = userProfile.phone.trim()
+            transactions.filter {
+                it.type == TransactionType.WITHDRAW &&
+                ((currentName.isNotBlank() && it.username.isNotBlank() && it.username.trim().equals(currentName, ignoreCase = true)) ||
+                 (currentPhone.isNotBlank() && it.userPhone.isNotBlank() && it.userPhone.trim() == currentPhone))
+            }
+        }
     }
 
     Column(

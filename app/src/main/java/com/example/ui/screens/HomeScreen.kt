@@ -43,6 +43,7 @@ import com.example.R
 import com.example.model.AppLanguage
 import com.example.model.GameCategory
 import com.example.model.GameItem
+import com.example.model.GameServerStatus
 import com.example.model.UserProfile
 import com.example.ui.components.CasinoPromotionsAndInviteHub
 import com.example.ui.theme.*
@@ -71,8 +72,9 @@ fun HomeScreen(
     modifier: Modifier = Modifier
 ) {
     val filteredGames = remember(selectedCategory, games) {
-        if (selectedCategory == GameCategory.ALL) games
-        else games.filter { it.category == selectedCategory || (selectedCategory == GameCategory.HOT && it.badge != null) }
+        val activeGames = games.filter { it.isActive }
+        if (selectedCategory == GameCategory.ALL) activeGames
+        else activeGames.filter { it.category == selectedCategory || (selectedCategory == GameCategory.HOT && it.badge != null) }
     }
 
     LazyVerticalGrid(
@@ -288,62 +290,28 @@ fun HomeScreen(
             )
         }
 
-        // Category Filter Tabs
+        // New HOT GAMES Section (Matching exact screenshot layout, replacing previous games listing)
         item(span = { GridItemSpan(2) }) {
-            CategoryFilterTabs(
-                selectedCategory = selectedCategory,
-                onSelectCategory = onSelectCategory,
-                language = language
-            )
-        }
-
-        // Section Title: পপুলার গেমস / Popular Games
-        item(span = { GridItemSpan(2) }) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 4.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = StringRes.t(language, "পপুলার গেমস / Popular Games", "Popular Games"),
-                        color = Slate300,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-
-                Text(
-                    text = StringRes.t(language, "সব দেখুন >", "View All >"),
-                    color = GoldPrimary,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Medium,
-                    modifier = Modifier.clickable { onSelectCategory(GameCategory.ALL) }
-                )
-            }
-        }
-
-        // Game Grid Cards
-        items(filteredGames, key = { it.id }) { game ->
-            GameGridCard(
-                game = game,
-                language = language,
-                onPlay = {
+            com.example.ui.components.HotGamesSection(
+                onOpenAviator = {
                     if (userProfile?.isLoggedIn != true) {
                         onShowToast?.invoke(
                             if (language == AppLanguage.BN)
                                 "গেমটি খেলতে অনুগ্রহ করে প্রথমে বিনামূল্যে একাউন্ট রেজিস্ট্রেশন করুন"
                             else
-                                "Please register free to play this game"
+                                "Please register free to play Aviator"
                         )
                         onOpenAuth?.invoke(1)
                     } else {
-                        onOpenGame(game.id)
+                        onOpenGame("aviator_crash")
                     }
                 }
             )
+        }
+
+        // LIVE CASINO, SPORTS & SLOTS Section (From User Screenshots)
+        item(span = { GridItemSpan(2) }) {
+            com.example.ui.components.CasinoSectionsComponent()
         }
 
         // Recent Big Winners Ticker
@@ -771,10 +739,42 @@ private fun GameGridCard(
                     ),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = game.iconEmoji,
-                    fontSize = 42.sp
-                )
+                if (game.imageUrl.isNotBlank()) {
+                    coil.compose.AsyncImage(
+                        model = game.imageUrl,
+                        contentDescription = game.titleEn,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .fillMaxHeight(),
+                        contentScale = ContentScale.Fit
+                    )
+                } else {
+                    Text(
+                        text = game.iconEmoji,
+                        fontSize = 42.sp
+                    )
+                }
+
+                // Server Status indicator if not ACTIVE
+                if (game.serverStatus != GameServerStatus.ACTIVE) {
+                    Surface(
+                        shape = RoundedCornerShape(bottomEnd = 8.dp),
+                        color = Color(game.serverStatus.colorHex),
+                        modifier = Modifier.align(Alignment.TopStart)
+                    ) {
+                        Text(
+                            text = when (game.serverStatus) {
+                                GameServerStatus.SERVER_UPDATE -> "🛠️ UPDATE"
+                                GameServerStatus.SERVER_ERROR -> "🚫 ERROR"
+                                else -> "🔒 OFFLINE"
+                            },
+                            color = Color.Black,
+                            fontSize = 8.sp,
+                            fontWeight = FontWeight.Black,
+                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
+                        )
+                    }
+                }
 
                 // Optional badge (HOT, NEW, LIVE)
                 if (game.badge != null) {

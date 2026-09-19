@@ -14,8 +14,9 @@ import java.util.UUID
  */
 class SessionManager(context: Context) {
 
+    private val appContext = context.applicationContext
     private val prefs: SharedPreferences =
-        context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+        SharedDataStore.getSessionPrefs(appContext)
 
     companion object {
         private const val PREF_NAME = "snx_session_cookies_prefs"
@@ -41,6 +42,7 @@ class SessionManager(context: Context) {
         private const val KEY_LAST_DAILY_SPIN_DATE = "key_last_daily_spin_date"
         private const val KEY_LAST_DAILY_SPIN_TIMESTAMP = "key_last_daily_spin_timestamp"
         private const val KEY_LAST_WEEKLY_CASHBACK_DATE = "key_last_weekly_cashback_date"
+        private const val KEY_USER_STATUS = "key_user_status"
 
         // Registered user registry key
         private const val KEY_REGISTERED_USERS_JSON = "key_registered_users_json"
@@ -86,8 +88,10 @@ class SessionManager(context: Context) {
             putString(KEY_LAST_DAILY_SPIN_DATE, profile.lastDailySpinDate)
             putLong(KEY_LAST_DAILY_SPIN_TIMESTAMP, profile.lastDailySpinTimestamp)
             putString(KEY_LAST_WEEKLY_CASHBACK_DATE, profile.lastWeeklyCashbackClaimDate)
+            putString(KEY_USER_STATUS, profile.status)
             apply()
         }
+        SharedDataStore.broadcastAndSync(appContext)
     }
 
     /**
@@ -121,6 +125,7 @@ class SessionManager(context: Context) {
         val lastDailySpinDate = prefs.getString(KEY_LAST_DAILY_SPIN_DATE, null)
         val lastDailySpinTimestamp = prefs.getLong(KEY_LAST_DAILY_SPIN_TIMESTAMP, 0L)
         val lastWeeklyCashbackClaimDate = prefs.getString(KEY_LAST_WEEKLY_CASHBACK_DATE, null)
+        val userStatus = prefs.getString(KEY_USER_STATUS, "ACTIVE") ?: "ACTIVE"
 
         return UserProfile(
             username = username,
@@ -138,7 +143,8 @@ class SessionManager(context: Context) {
             pendingCouponCode = pendingCoupon,
             lastDailySpinDate = lastDailySpinDate,
             lastDailySpinTimestamp = lastDailySpinTimestamp,
-            lastWeeklyCashbackClaimDate = lastWeeklyCashbackClaimDate
+            lastWeeklyCashbackClaimDate = lastWeeklyCashbackClaimDate,
+            status = userStatus
         )
     }
 
@@ -195,7 +201,7 @@ class SessionManager(context: Context) {
     fun saveTransactions(records: List<TransactionRecord>) {
         try {
             val jsonArray = JSONArray()
-            records.take(20).forEach { item ->
+            records.take(50).forEach { item ->
                 val obj = JSONObject().apply {
                     put("id", item.id)
                     put("type", item.type.name)
@@ -205,10 +211,13 @@ class SessionManager(context: Context) {
                     put("trxId", item.trxId)
                     put("status", item.status.name)
                     put("timeFormatted", item.timeFormatted)
+                    put("username", item.username)
+                    put("userPhone", item.userPhone)
                 }
                 jsonArray.put(obj)
             }
             prefs.edit().putString(KEY_TRANSACTIONS_JSON, jsonArray.toString()).apply()
+            SharedDataStore.broadcastAndSync(appContext)
         } catch (_: Exception) {}
     }
 
@@ -231,7 +240,9 @@ class SessionManager(context: Context) {
                         accountNo = obj.getString("accountNo"),
                         trxId = obj.getString("trxId"),
                         status = TransactionStatus.valueOf(obj.getString("status")),
-                        timeFormatted = obj.getString("timeFormatted")
+                        timeFormatted = obj.getString("timeFormatted"),
+                        username = obj.optString("username", ""),
+                        userPhone = obj.optString("userPhone", "")
                     )
                 )
             }
@@ -318,7 +329,8 @@ class SessionManager(context: Context) {
                         totalDeposited = obj.optDouble("totalDeposited", 0.0),
                         totalWithdrawn = obj.optDouble("totalWithdrawn", 0.0),
                         vipLevel = obj.optString("vipLevel", "VIP 1"),
-                        registeredDate = obj.optString("registeredDate", "Live Registered")
+                        registeredDate = obj.optString("registeredDate", "Live Registered"),
+                        status = obj.optString("status", "ACTIVE")
                     )
                 )
             }
@@ -326,6 +338,10 @@ class SessionManager(context: Context) {
         } catch (_: Exception) {
             emptyList()
         }
+    }
+
+    fun saveRegisteredAccounts(accounts: List<RegisteredAccount>) {
+        saveRegisteredAccountsList(accounts)
     }
 
     private fun saveRegisteredAccountsList(accounts: List<RegisteredAccount>) {
@@ -342,10 +358,12 @@ class SessionManager(context: Context) {
                     put("totalWithdrawn", acc.totalWithdrawn)
                     put("vipLevel", acc.vipLevel)
                     put("registeredDate", acc.registeredDate)
+                    put("status", acc.status)
                 }
                 jsonArray.put(obj)
             }
             prefs.edit().putString(KEY_REGISTERED_USERS_JSON, jsonArray.toString()).apply()
+            SharedDataStore.broadcastAndSync(appContext)
         } catch (_: Exception) {}
     }
 }
@@ -359,5 +377,6 @@ data class RegisteredAccount(
     val totalDeposited: Double = 0.0,
     val totalWithdrawn: Double = 0.0,
     val vipLevel: String = "VIP 1",
-    val registeredDate: String = "Live Registered"
+    val registeredDate: String = "Live Registered",
+    val status: String = "ACTIVE"
 )

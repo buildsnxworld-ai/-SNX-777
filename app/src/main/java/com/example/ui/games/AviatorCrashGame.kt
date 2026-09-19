@@ -7,6 +7,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -29,6 +30,10 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
@@ -38,6 +43,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import coil.compose.rememberAsyncImagePainter
+import com.example.data.AdminManager
 import com.example.model.AppLanguage
 import com.example.ui.theme.*
 import com.example.util.AviatorSoundManager
@@ -97,6 +104,12 @@ fun AviatorCrashGame(
     onDismiss: () -> Unit
 ) {
     if (!isOpen) return
+
+    val context = LocalContext.current
+    val aviatorGame = remember(isOpen) {
+        AdminManager.getInstance(context).gamesList.value.firstOrNull { it.id == "aviator_crash" }
+    }
+    val customPlaneImageUrl = aviatorGame?.imageUrl.orEmpty()
 
     val decimalFormat = remember { DecimalFormat("#,##0.00") }
 
@@ -361,7 +374,8 @@ fun AviatorCrashGame(
                         phase = currentPhase,
                         multiplier = currentMultiplier,
                         flightDurationMs = flightDurationMs,
-                        waitingProgress = waitingProgress
+                        waitingProgress = waitingProgress,
+                        customPlaneImageUrl = customPlaneImageUrl
                     )
 
                     // Big Center Multiplier or Game State
@@ -946,7 +960,8 @@ private fun AviatorExactFlightCanvas(
     phase: AviatorGamePhase,
     multiplier: Double,
     flightDurationMs: Long,
-    waitingProgress: Float
+    waitingProgress: Float,
+    customPlaneImageUrl: String = ""
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "canvas_anims")
 
@@ -977,119 +992,156 @@ private fun AviatorExactFlightCanvas(
         else ((multiplier - 1.0) / 7.0).coerceIn(0.0, 1.0).toFloat()
     }
 
-    Canvas(modifier = Modifier.fillMaxSize()) {
-        val w = size.width
-        val h = size.height
+    val planePainter = if (customPlaneImageUrl.isNotBlank()) {
+        rememberAsyncImagePainter(model = customPlaneImageUrl)
+    } else null
 
-        // 1. Draw Radial Rays (Sunburst effect) centered at bottom-left
-        val rayCenter = Offset(startXCoord(), h - 20f)
-        rotate(degrees = rayAngle, pivot = rayCenter) {
-            val numRays = 18
-            for (i in 0 until numRays) {
-                val angle = (i * (360f / numRays)) * (Math.PI / 180.0)
-                val rayLength = w * 1.8f
-                val endX = (rayCenter.x + rayLength * cos(angle)).toFloat()
-                val endY = (rayCenter.y + rayLength * sin(angle)).toFloat()
-                drawLine(
-                    color = Color(0xFF14161F).copy(alpha = 0.35f),
-                    start = rayCenter,
-                    end = Offset(endX, endY),
-                    strokeWidth = 24f
-                )
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val density = LocalDensity.current
+        val wPx = constraints.maxWidth.toFloat()
+        val hPx = constraints.maxHeight.toFloat()
+
+        val startX = 45f
+        val startY = hPx - 35f
+
+        val planeX = startX + (wPx - 110f) * progress
+        val planeY = startY - (hPx - 85f) * (progress * 0.82f + progress * progress * 0.18f)
+        val planeAngle = -18f * (1f - progress * 0.25f)
+
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val w = size.width
+            val h = size.height
+
+            // 1. Draw Radial Rays (Sunburst effect) centered at bottom-left
+            val rayCenter = Offset(startXCoord(), h - 20f)
+            rotate(degrees = rayAngle, pivot = rayCenter) {
+                val numRays = 18
+                for (i in 0 until numRays) {
+                    val angle = (i * (360f / numRays)) * (Math.PI / 180.0)
+                    val rayLength = w * 1.8f
+                    val endX = (rayCenter.x + rayLength * cos(angle)).toFloat()
+                    val endY = (rayCenter.y + rayLength * sin(angle)).toFloat()
+                    drawLine(
+                        color = Color(0xFF14161F).copy(alpha = 0.35f),
+                        start = rayCenter,
+                        end = Offset(endX, endY),
+                        strokeWidth = 24f
+                    )
+                }
             }
-        }
 
-        // 2. Cyan / Blue Atmospheric Glow (as seen in photo_2026-09-12_18-07-34.jpg during flight)
-        if (phase == AviatorGamePhase.FLYING) {
-            drawCircle(
-                brush = Brush.radialGradient(
-                    colors = listOf(
-                        Color(0xFF024873).copy(alpha = 0.55f),
-                        Color(0xFF01243A).copy(alpha = 0.25f),
-                        Color.Transparent
+            // 2. Cyan / Blue Atmospheric Glow (as seen in photo_2026-09-12_18-07-34.jpg during flight)
+            if (phase == AviatorGamePhase.FLYING) {
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            Color(0xFF024873).copy(alpha = 0.55f),
+                            Color(0xFF01243A).copy(alpha = 0.25f),
+                            Color.Transparent
+                        ),
+                        center = Offset(w * 0.50f, h * 0.38f),
+                        radius = w * 0.48f
                     ),
                     center = Offset(w * 0.50f, h * 0.38f),
                     radius = w * 0.48f
-                ),
-                center = Offset(w * 0.50f, h * 0.38f),
-                radius = w * 0.48f
-            )
+                )
+            }
+
+            // 3. Flight Path, Red Curtain & Default Airplane
+            when (phase) {
+                AviatorGamePhase.WAITING -> {
+                    if (planePainter == null) {
+                        drawExactSpribeAirplane(
+                            center = Offset(startX + 28f, startY - 14f),
+                            angleDegrees = 0f,
+                            propellerAngle = propellerAngle,
+                            scale = 1.9f
+                        )
+                    }
+                }
+
+                AviatorGamePhase.FLYING -> {
+                    // Curved trajectory path
+                    val curvePath = Path().apply {
+                        moveTo(startX, startY)
+                        quadraticBezierTo(
+                            startX + (planeX - startX) * 0.45f,
+                            startY,
+                            planeX,
+                            planeY
+                        )
+                    }
+
+                    // RED CURTAIN: Exact straight vertical drop under the plane as in user's photo & video!
+                    val curtainPath = Path().apply {
+                        moveTo(startX, startY)
+                        quadraticBezierTo(
+                            startX + (planeX - startX) * 0.45f,
+                            startY,
+                            planeX,
+                            planeY
+                        )
+                        lineTo(planeX, startY)
+                        lineTo(startX, startY)
+                        close()
+                    }
+
+                    // Fill red curtain with vertical gradient
+                    val curtainGradient = Brush.verticalGradient(
+                        colors = listOf(
+                            Color(0xFFE52338).copy(alpha = 0.60f),
+                            Color(0xFFE52338).copy(alpha = 0.18f)
+                        ),
+                        startY = planeY,
+                        endY = startY
+                    )
+                    drawPath(curtainPath, brush = curtainGradient)
+
+                    // Red glowing trajectory line
+                    drawPath(
+                        path = curvePath,
+                        color = Color(0xFFE52338),
+                        style = Stroke(width = 3.5.dp.toPx(), cap = StrokeCap.Round)
+                    )
+
+                    // Draw Default Spribe Red Propeller Airplane if no custom image is configured
+                    if (planePainter == null) {
+                        drawExactSpribeAirplane(
+                            center = Offset(planeX, planeY),
+                            angleDegrees = planeAngle,
+                            propellerAngle = propellerAngle,
+                            scale = 1.9f
+                        )
+                    }
+                }
+
+                AviatorGamePhase.CRASHED -> {
+                    // Airplane flew away!
+                }
+            }
         }
 
-        // 3. Flight Path, Red Curtain & Plane
-        val startX = 45f
-        val startY = h - 35f
-
-        when (phase) {
-            AviatorGamePhase.WAITING -> {
-                // Large, clearly visible Red Propeller Monoplane parked at bottom-left corner ready for takeoff
-                drawExactSpribeAirplane(
-                    center = Offset(startX + 28f, startY - 14f),
-                    angleDegrees = 0f,
-                    propellerAngle = propellerAngle,
-                    scale = 1.9f
-                )
+        // Overlay Custom Airplane Image uploaded via Admin panel
+        if (planePainter != null && (phase == AviatorGamePhase.WAITING || phase == AviatorGamePhase.FLYING)) {
+            val (curX, curY, curAng) = when (phase) {
+                AviatorGamePhase.WAITING -> Triple(startX + 28f, startY - 14f, 0f)
+                AviatorGamePhase.FLYING -> Triple(planeX, planeY, planeAngle)
+                AviatorGamePhase.CRASHED -> Triple(0f, 0f, 0f)
             }
 
-            AviatorGamePhase.FLYING -> {
-                val planeX = startX + (w - 110f) * progress
-                val planeY = startY - (h - 85f) * (progress * 0.82f + progress * progress * 0.18f)
+            val planeSize = 68.dp
+            val xOffsetDp = with(density) { (curX - 34f).toDp() }
+            val yOffsetDp = with(density) { (curY - 34f).toDp() }
 
-                // Curved trajectory path
-                val curvePath = Path().apply {
-                    moveTo(startX, startY)
-                    quadraticBezierTo(
-                        startX + (planeX - startX) * 0.45f,
-                        startY,
-                        planeX,
-                        planeY
-                    )
-                }
-
-                // RED CURTAIN: Exact straight vertical drop under the plane as in user's photo & video!
-                val curtainPath = Path().apply {
-                    moveTo(startX, startY)
-                    quadraticBezierTo(
-                        startX + (planeX - startX) * 0.45f,
-                        startY,
-                        planeX,
-                        planeY
-                    )
-                    lineTo(planeX, startY) // Vertical drop from plane to bottom
-                    lineTo(startX, startY)
-                    close()
-                }
-
-                // Fill red curtain with vertical gradient
-                val curtainGradient = Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFFE52338).copy(alpha = 0.60f),
-                        Color(0xFFE52338).copy(alpha = 0.18f)
-                    ),
-                    startY = planeY,
-                    endY = startY
-                )
-                drawPath(curtainPath, brush = curtainGradient)
-
-                // Red glowing trajectory line
-                drawPath(
-                    path = curvePath,
-                    color = Color(0xFFE52338),
-                    style = Stroke(width = 3.5.dp.toPx(), cap = StrokeCap.Round)
-                )
-
-                // Large, prominent Red Propeller Monoplane ascending at curve tip
-                drawExactSpribeAirplane(
-                    center = Offset(planeX, planeY),
-                    angleDegrees = -18f * (1f - progress * 0.25f),
-                    propellerAngle = propellerAngle,
-                    scale = 1.9f
-                )
-            }
-
-            AviatorGamePhase.CRASHED -> {
-                // Airplane flew away! Nothing drawn, screen is clean dark with radial rays
-            }
+            Image(
+                painter = planePainter,
+                contentDescription = "Custom Aviator Aircraft",
+                modifier = Modifier
+                    .size(planeSize)
+                    .offset(x = xOffsetDp, y = yOffsetDp)
+                    .graphicsLayer(rotationZ = curAng),
+                contentScale = ContentScale.Fit
+            )
         }
     }
 }

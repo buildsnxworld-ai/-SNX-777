@@ -1,4 +1,6 @@
 <resources>
     <string name="app_name">SNX 777</string>
-    <string name="admin_app_name">SNX Admin Panel</string>
+    <string name="user_app_name">SNX 777</string>
+    <string name="signal_app_name">SNX Signal</string>
+    <string name="admin_app_name">SNX Admin</string>
 </resources>

@@ -8,7 +8,9 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
@@ -27,6 +29,7 @@ import androidx.compose.ui.unit.sp
 import com.example.model.AppLanguage
 import com.example.model.GameCategory
 import com.example.model.GameItem
+import com.example.model.GameServerStatus
 import com.example.model.UserProfile
 import com.example.ui.theme.*
 import com.example.util.StringRes
@@ -46,6 +49,8 @@ fun GamesScreen(
 
     val filteredGames = remember(selectedCategory, searchQuery, games) {
         games.filter { game ->
+            if (!game.isActive) return@filter false
+
             val matchesCategory = (selectedCategory == GameCategory.ALL) ||
                     (game.category == selectedCategory) ||
                     (selectedCategory == GameCategory.HOT && game.badge != null)
@@ -62,6 +67,7 @@ fun GamesScreen(
         modifier = modifier
             .fillMaxSize()
             .background(CasinoBg)
+            .verticalScroll(rememberScrollState())
             .padding(horizontal = 10.dp)
     ) {
         Spacer(modifier = Modifier.height(10.dp))
@@ -129,112 +135,22 @@ fun GamesScreen(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Grid of filtered games
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(2),
-            modifier = Modifier
-                .fillMaxSize()
-                .testTag("games_grid"),
-            contentPadding = PaddingValues(bottom = 80.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            items(filteredGames, key = { it.id }) { game ->
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
-                        .clickable {
-                            if (userProfile?.isLoggedIn != true) {
-                                onOpenAuth?.invoke(1)
-                            } else {
-                                onOpenGame(game.id)
-                            }
-                        }
-                        .testTag("game_item_${game.id}"),
-                    colors = CardDefaults.cardColors(containerColor = Slate800),
-                    border = CardDefaults.outlinedCardBorder().copy(brush = Brush.linearGradient(listOf(CasinoBorderSubtle, CasinoBorderSubtle)))
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(10.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(80.dp)
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(Slate900),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(text = game.iconEmoji, fontSize = 38.sp)
-                            if (game.badge != null) {
-                                Surface(
-                                    shape = RoundedCornerShape(bottomStart = 8.dp),
-                                    color = if (game.badge == "JACKPOT") GoldPrimary else AccentCrimson,
-                                    modifier = Modifier.align(Alignment.TopEnd)
-                                ) {
-                                    Text(
-                                        text = game.badge,
-                                        color = if (game.badge == "JACKPOT") Color.Black else Color.White,
-                                        fontSize = 8.sp,
-                                        fontWeight = FontWeight.Black,
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                    )
-                                }
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        Text(
-                            text = if (language == AppLanguage.BN) game.titleBn else game.titleEn,
-                            color = Slate100,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-
-                        Spacer(modifier = Modifier.height(4.dp))
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(
-                                text = if (language == AppLanguage.BN) "প্লেয়ার: ${game.playersCount}" else "Players: ${game.playersCount}",
-                                color = Slate400,
-                                fontSize = 9.sp
-                            )
-                            Text(
-                                text = if (language == AppLanguage.BN) "মিনিমাম: ৳${game.minBet.toInt()}" else "Min: ৳${game.minBet.toInt()}",
-                                color = GoldLight,
-                                fontSize = 9.sp
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        Button(
-                            onClick = { onOpenGame(game.id) },
-                            modifier = Modifier.fillMaxWidth().height(30.dp),
-                            shape = RoundedCornerShape(8.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = GoldPrimary, contentColor = Color.Black),
-                            contentPadding = PaddingValues(0.dp)
-                        ) {
-                            Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = StringRes.t(language, "খেলুন", "PLAY"),
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Black
-                            )
-                        }
-                    }
+        // New HOT GAMES Section (Replacing previous games listing completely)
+        com.example.ui.components.HotGamesSection(
+            onOpenAviator = {
+                if (userProfile?.isLoggedIn != true) {
+                    onOpenAuth?.invoke(1)
+                } else {
+                    onOpenGame("aviator_crash")
                 }
             }
-        }
+        )
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        // LIVE CASINO, SPORTS & SLOTS Section (From User Screenshots)
+        com.example.ui.components.CasinoSectionsComponent()
+
+        Spacer(modifier = Modifier.height(20.dp))
     }
 }
