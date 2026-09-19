@@ -522,6 +522,7 @@ class AdminManager private constructor(context: Context) {
     private fun saveDepositRequests(list: List<DepositRequest>) {
         saveDepositRequestsDirect(list)
         SharedDataStore.broadcastAndSync(appContext)
+        SnxCloudSyncService.pushToCloud(appContext)
     }
 
     fun submitUserDepositRequest(
@@ -573,7 +574,7 @@ class AdminManager private constructor(context: Context) {
             creditUserBalance(req.userPhone, req.username, totalCredit, req.amount)
             updateTransactionStatus(req.userPhone, req.username, TransactionType.DEPOSIT, TransactionStatus.APPROVED)
 
-            // Push status update to Game Website app
+            // Push status update to Game Website app and Cloud
             SharedDataStore.notifyDepositStatusChanged(
                 appContext,
                 req.id,
@@ -582,6 +583,8 @@ class AdminManager private constructor(context: Context) {
                 req.userPhone,
                 req.username
             )
+            SnxCloudSyncService.pushDepositStatusUpdate(appContext, req.id, "APPROVED", "Approved by Admin")
+            SnxCloudSyncService.pushToCloud(appContext)
             return true
         }
         return false
@@ -608,6 +611,8 @@ class AdminManager private constructor(context: Context) {
                 rejectedReq!!.userPhone,
                 rejectedReq!!.username
             )
+            SnxCloudSyncService.pushDepositStatusUpdate(appContext, rejectedReq!!.id, "REJECTED", reason)
+            SnxCloudSyncService.pushToCloud(appContext)
             return true
         }
         return false
@@ -697,6 +702,7 @@ class AdminManager private constructor(context: Context) {
     private fun saveWithdrawRequests(list: List<WithdrawalRequest>) {
         saveWithdrawRequestsDirect(list)
         SharedDataStore.broadcastAndSync(appContext)
+        SnxCloudSyncService.pushToCloud(appContext)
     }
 
     fun submitUserWithdrawRequest(
@@ -745,6 +751,8 @@ class AdminManager private constructor(context: Context) {
                 approvedReq!!.userPhone,
                 approvedReq!!.username
             )
+            SnxCloudSyncService.pushWithdrawStatusUpdate(appContext, approvedReq!!.id, "APPROVED", "Dispatched & Confirmed by Admin")
+            SnxCloudSyncService.pushToCloud(appContext)
             return true
         }
         return false
@@ -773,6 +781,8 @@ class AdminManager private constructor(context: Context) {
                 reqToRefund!!.userPhone,
                 reqToRefund!!.username
             )
+            SnxCloudSyncService.pushWithdrawStatusUpdate(appContext, reqToRefund!!.id, "REJECTED", reason)
+            SnxCloudSyncService.pushToCloud(appContext)
             return true
         }
         return false
@@ -906,6 +916,7 @@ class AdminManager private constructor(context: Context) {
 
         loadRegisteredUsers()
         SharedDataStore.notifyBalanceAdjusted(appContext, cleanPhone, newBalance)
+        SnxCloudSyncService.pushToCloud(appContext)
         return true
     }
 
@@ -981,6 +992,7 @@ class AdminManager private constructor(context: Context) {
             val jsonStr = obj.toString()
             prefs.edit().putString(KEY_SITE_CONFIG_JSON, jsonStr).apply()
             SharedDataStore.notifySiteConfigChanged(appContext, jsonStr)
+            SnxCloudSyncService.pushToCloud(appContext)
         } catch (_: Exception) {}
     }
 
@@ -1108,6 +1120,7 @@ class AdminManager private constructor(context: Context) {
             val jsonStr = array.toString()
             prefs.edit().putString(KEY_GAMES_LIST_JSON, jsonStr).apply()
             SharedDataStore.notifyGamesChanged(appContext, jsonStr)
+            SnxCloudSyncService.pushToCloud(appContext)
         } catch (_: Exception) {}
     }
 }

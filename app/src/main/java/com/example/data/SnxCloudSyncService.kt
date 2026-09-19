@@ -107,7 +107,7 @@ object SnxCloudSyncService {
     /**
      * Starts continuous cloud synchronization loop in the background.
      */
-    fun startAutoSync(context: Context, intervalMs: Long = 2500L) {
+    fun startAutoSync(context: Context, intervalMs: Long = 1200L) {
         if (isLoopStarted) return
         isLoopStarted = true
         scope.launch {
@@ -127,9 +127,12 @@ object SnxCloudSyncService {
     private fun fetchExistingCloudData(endpoint: String): JSONObject? {
         for (attempt in 1..3) {
             try {
+                val cacheBustUrl = if (endpoint.contains("?")) "$endpoint&_cb=${System.currentTimeMillis()}" else "$endpoint?_cb=${System.currentTimeMillis()}"
                 val getReq = Request.Builder()
-                    .url(endpoint)
+                    .url(cacheBustUrl)
                     .header("User-Agent", "Mozilla/5.0 (Android; Mobile; rv:120.0)")
+                    .header("Cache-Control", "no-cache, no-store, max-age=0, must-revalidate")
+                    .header("Pragma", "no-cache")
                     .get()
                     .build()
                 httpClient.newCall(getReq).execute().use { res ->
@@ -143,7 +146,7 @@ object SnxCloudSyncService {
                     }
                 }
             } catch (_: Exception) {}
-            try { Thread.sleep(150) } catch (_: Exception) {}
+            try { Thread.sleep(100) } catch (_: Exception) {}
         }
         return null
     }
