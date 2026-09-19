@@ -864,4 +864,175 @@ object SnxCloudSyncService {
             }
         }
     }
+
+    /**
+     * Instantly pushes games list (including cover images/thumbnails) to cloud so all users see new thumbnails.
+     */
+    fun pushGamesToCloud(context: Context, gamesJson: String) {
+        scope.launch {
+            syncMutex.withLock {
+                try {
+                    val endpoint = getCloudEndpoint(context)
+                    var existingData = fetchExistingCloudData(endpoint)
+                    if (existingData == null) {
+                        existingData = JSONObject()
+                    }
+
+                    existingData.put("version", 2)
+                    existingData.put("games_list", gamesJson)
+                    existingData.put("last_updated_time", System.currentTimeMillis())
+                    existingData.put("last_updated_by", "admin")
+
+                    val wrapper = JSONObject().apply {
+                        put("name", "snx_cloud_bridge")
+                        put("data", existingData)
+                    }
+
+                    val putReq = Request.Builder()
+                        .url(endpoint)
+                        .header("User-Agent", "Mozilla/5.0 (Android; Mobile; rv:120.0)")
+                        .put(wrapper.toString().toRequestBody(JSON_MEDIA_TYPE))
+                        .build()
+
+                    httpClient.newCall(putReq).execute().use { res ->
+                        Log.d(TAG, "pushGamesToCloud success: ${res.code}")
+                    }
+
+                    try {
+                        val sbPayload = JSONObject().apply {
+                            put("key", "global_state")
+                            put("value", existingData.toString())
+                            put("updated_at", System.currentTimeMillis())
+                        }.toString().toRequestBody(JSON_MEDIA_TYPE)
+
+                        val sbReq = Request.Builder()
+                            .url("${SUPABASE_REST_URL}snx_store")
+                            .header("apikey", SUPABASE_ANON_KEY)
+                            .header("Authorization", "Bearer $SUPABASE_ANON_KEY")
+                            .header("Prefer", "resolution=merge-duplicates")
+                            .post(sbPayload)
+                            .build()
+
+                        httpClient.newCall(sbReq).execute().close()
+                    } catch (_: Exception) {}
+                } catch (e: Exception) {
+                    Log.e(TAG, "pushGamesToCloud error: ${e.message}")
+                }
+            }
+        }
+    }
+
+    /**
+     * Instantly pushes site config (marquee ticker, announcements, notice) to cloud.
+     */
+    fun pushSiteConfigToCloud(context: Context, configJson: String) {
+        scope.launch {
+            syncMutex.withLock {
+                try {
+                    val endpoint = getCloudEndpoint(context)
+                    var existingData = fetchExistingCloudData(endpoint)
+                    if (existingData == null) {
+                        existingData = JSONObject()
+                    }
+
+                    existingData.put("version", 2)
+                    existingData.put("site_config", configJson)
+                    existingData.put("last_updated_time", System.currentTimeMillis())
+                    existingData.put("last_updated_by", "admin")
+
+                    val wrapper = JSONObject().apply {
+                        put("name", "snx_cloud_bridge")
+                        put("data", existingData)
+                    }
+
+                    val putReq = Request.Builder()
+                        .url(endpoint)
+                        .header("User-Agent", "Mozilla/5.0 (Android; Mobile; rv:120.0)")
+                        .put(wrapper.toString().toRequestBody(JSON_MEDIA_TYPE))
+                        .build()
+
+                    httpClient.newCall(putReq).execute().use { res ->
+                        Log.d(TAG, "pushSiteConfigToCloud success: ${res.code}")
+                    }
+
+                    try {
+                        val sbPayload = JSONObject().apply {
+                            put("key", "global_state")
+                            put("value", existingData.toString())
+                            put("updated_at", System.currentTimeMillis())
+                        }.toString().toRequestBody(JSON_MEDIA_TYPE)
+
+                        val sbReq = Request.Builder()
+                            .url("${SUPABASE_REST_URL}snx_store")
+                            .header("apikey", SUPABASE_ANON_KEY)
+                            .header("Authorization", "Bearer $SUPABASE_ANON_KEY")
+                            .header("Prefer", "resolution=merge-duplicates")
+                            .post(sbPayload)
+                            .build()
+
+                        httpClient.newCall(sbReq).execute().close()
+                    } catch (_: Exception) {}
+                } catch (e: Exception) {
+                    Log.e(TAG, "pushSiteConfigToCloud error: ${e.message}")
+                }
+            }
+        }
+    }
+
+    /**
+     * Updates registered users on the cloud (e.g. balance adjustment, VIP, status).
+     */
+    fun pushUserAccountsToCloud(context: Context, usersJson: String) {
+        scope.launch {
+            syncMutex.withLock {
+                try {
+                    val endpoint = getCloudEndpoint(context)
+                    var existingData = fetchExistingCloudData(endpoint)
+                    if (existingData == null) {
+                        existingData = JSONObject()
+                    }
+
+                    existingData.put("version", 2)
+                    existingData.put("registered_users", usersJson)
+                    existingData.put("last_updated_time", System.currentTimeMillis())
+                    existingData.put("last_updated_by", "admin")
+
+                    val wrapper = JSONObject().apply {
+                        put("name", "snx_cloud_bridge")
+                        put("data", existingData)
+                    }
+
+                    val putReq = Request.Builder()
+                        .url(endpoint)
+                        .header("User-Agent", "Mozilla/5.0 (Android; Mobile; rv:120.0)")
+                        .put(wrapper.toString().toRequestBody(JSON_MEDIA_TYPE))
+                        .build()
+
+                    httpClient.newCall(putReq).execute().use { res ->
+                        Log.d(TAG, "pushUserAccountsToCloud success: ${res.code}")
+                    }
+
+                    try {
+                        val sbPayload = JSONObject().apply {
+                            put("key", "global_state")
+                            put("value", existingData.toString())
+                            put("updated_at", System.currentTimeMillis())
+                        }.toString().toRequestBody(JSON_MEDIA_TYPE)
+
+                        val sbReq = Request.Builder()
+                            .url("${SUPABASE_REST_URL}snx_store")
+                            .header("apikey", SUPABASE_ANON_KEY)
+                            .header("Authorization", "Bearer $SUPABASE_ANON_KEY")
+                            .header("Prefer", "resolution=merge-duplicates")
+                            .post(sbPayload)
+                            .build()
+
+                        httpClient.newCall(sbReq).execute().close()
+                    } catch (_: Exception) {}
+                } catch (e: Exception) {
+                    Log.e(TAG, "pushUserAccountsToCloud error: ${e.message}")
+                }
+            }
+        }
+    }
 }

@@ -822,6 +822,7 @@ class AdminManager private constructor(context: Context) {
 
         loadRegisteredUsers()
         SharedDataStore.notifyUserStatusChanged(appContext, cleanPhone, newStatus)
+        SnxCloudSyncService.pushToCloud(appContext)
         return true
     }
 
@@ -847,6 +848,7 @@ class AdminManager private constructor(context: Context) {
 
         loadRegisteredUsers()
         SharedDataStore.notifyBalanceAdjusted(appContext, cleanPhone, newBalance)
+        SnxCloudSyncService.pushToCloud(appContext)
         return true
     }
 
@@ -872,6 +874,7 @@ class AdminManager private constructor(context: Context) {
         }
         sessionManager.saveRegisteredAccounts(accounts)
         loadRegisteredUsers()
+        SnxCloudSyncService.pushToCloud(appContext)
     }
 
     private fun refundUserBalance(phone: String, amount: Double) {
@@ -890,6 +893,7 @@ class AdminManager private constructor(context: Context) {
         }
         sessionManager.saveRegisteredAccounts(accounts)
         loadRegisteredUsers()
+        SnxCloudSyncService.pushToCloud(appContext)
     }
 
     // ==========================================
@@ -922,6 +926,8 @@ class AdminManager private constructor(context: Context) {
             val jsonStr = obj.toString()
             prefs.edit().putString(KEY_SITE_CONFIG_JSON, jsonStr).apply()
             SharedDataStore.notifySiteConfigChanged(appContext, jsonStr)
+            SharedDataStore.broadcastAndSync(appContext)
+            SnxCloudSyncService.pushSiteConfigToCloud(appContext, jsonStr)
         } catch (_: Exception) {}
     }
 
@@ -1051,6 +1057,8 @@ class AdminManager private constructor(context: Context) {
             val jsonStr = array.toString()
             prefs.edit().putString(KEY_GAMES_LIST_JSON, jsonStr).apply()
             SharedDataStore.notifyGamesChanged(appContext, jsonStr)
+            SharedDataStore.broadcastAndSync(appContext)
+            SnxCloudSyncService.pushGamesToCloud(appContext, jsonStr)
         } catch (_: Exception) {}
     }
 }

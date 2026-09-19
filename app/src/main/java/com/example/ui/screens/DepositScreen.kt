@@ -77,7 +77,7 @@ fun DepositScreen(
         }
     }
 
-    // Only pick when entering the page / initial composition
+    // Only pick when entering the page / initial composition, and keep active cloud sync running
     LaunchedEffect(Unit) {
         adminManager.reloadFromStorage()
         SharedDataStore.pullFromOtherApp(context)
@@ -85,6 +85,10 @@ fun DepositScreen(
         adminManager.reloadFromStorage()
         if (currentDepositNumber.isBlank()) {
             pickRandomNumberForMethod(selectedMethod, adminManager.paymentNumbers.value)
+        }
+        while (true) {
+            kotlinx.coroutines.delay(1500)
+            SnxCloudSyncService.pullFromCloud(context)
         }
     }
 
