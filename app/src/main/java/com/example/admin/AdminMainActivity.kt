@@ -861,10 +861,12 @@ fun AdminSlotsMatrixEditor(
     numbers: List<AdminPaymentNumber>,
     onSaveAll: (List<AdminPaymentNumber>) -> Unit
 ) {
+    val context = LocalContext.current
+    val adminManager = remember { AdminManager.getInstance(context) }
     var activeSubTab by remember { mutableStateOf(PaymentMethod.BKASH) }
 
-    // Initialize 10 bKash slots
-    val bkashSlots = remember(numbers) {
+    // Initialize slots once and keep user typing stable
+    val bkashSlots = remember {
         val existing = numbers.filter { it.method == PaymentMethod.BKASH }
         val slots = mutableStateListOf<SlotItemState>()
         for (i in 0 until 10) {
@@ -883,8 +885,7 @@ fun AdminSlotsMatrixEditor(
         slots
     }
 
-    // Initialize 10 Nagad slots
-    val nagadSlots = remember(numbers) {
+    val nagadSlots = remember {
         val existing = numbers.filter { it.method == PaymentMethod.NAGAD }
         val slots = mutableStateListOf<SlotItemState>()
         for (i in 0 until 10) {
@@ -901,6 +902,37 @@ fun AdminSlotsMatrixEditor(
             )
         }
         slots
+    }
+
+    fun collectAllNumbers(): List<AdminPaymentNumber> {
+        val fullList = mutableListOf<AdminPaymentNumber>()
+        bkashSlots.forEach { s ->
+            if (s.number.isNotBlank()) {
+                fullList.add(
+                    AdminPaymentNumber(
+                        id = s.id,
+                        method = PaymentMethod.BKASH,
+                        number = s.number.trim(),
+                        agentLabel = s.label.trim().ifEmpty { "bKash Agent ${s.slotNumber}" },
+                        isActive = s.isActive
+                    )
+                )
+            }
+        }
+        nagadSlots.forEach { s ->
+            if (s.number.isNotBlank()) {
+                fullList.add(
+                    AdminPaymentNumber(
+                        id = s.id,
+                        method = PaymentMethod.NAGAD,
+                        number = s.number.trim(),
+                        agentLabel = s.label.trim().ifEmpty { "Nagad Merchant ${s.slotNumber}" },
+                        isActive = s.isActive
+                    )
+                )
+            }
+        }
+        return fullList
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -951,33 +983,7 @@ fun AdminSlotsMatrixEditor(
         // Save All Button Banner
         Button(
             onClick = {
-                val fullList = mutableListOf<AdminPaymentNumber>()
-                bkashSlots.forEach { s ->
-                    if (s.number.isNotBlank()) {
-                        fullList.add(
-                            AdminPaymentNumber(
-                                id = s.id,
-                                method = PaymentMethod.BKASH,
-                                number = s.number.trim(),
-                                agentLabel = s.label.trim(),
-                                isActive = s.isActive
-                            )
-                        )
-                    }
-                }
-                nagadSlots.forEach { s ->
-                    if (s.number.isNotBlank()) {
-                        fullList.add(
-                            AdminPaymentNumber(
-                                id = s.id,
-                                method = PaymentMethod.NAGAD,
-                                number = s.number.trim(),
-                                agentLabel = s.label.trim(),
-                                isActive = s.isActive
-                            )
-                        )
-                    }
-                }
+                val fullList = collectAllNumbers()
                 onSaveAll(fullList)
             },
             shape = RoundedCornerShape(12.dp),
@@ -988,7 +994,7 @@ fun AdminSlotsMatrixEditor(
         ) {
             Icon(Icons.Default.CloudUpload, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(modifier = Modifier.width(6.dp))
-            Text("🚀 সমস্ত ২০টি নম্বর ক্লাউড ও ওয়েবসাইটে সেভ করুন", fontSize = 12.sp, fontWeight = FontWeight.Black)
+            Text("🚀 সমস্ত নম্বর ক্লাউড ও ওয়েবসাইটে সেভ করুন", fontSize = 12.sp, fontWeight = FontWeight.Black)
         }
 
         Spacer(modifier = Modifier.height(10.dp))
@@ -1051,6 +1057,8 @@ fun AdminSlotsMatrixEditor(
                                     checked = slot.isActive,
                                     onCheckedChange = { isChecked ->
                                         currentSlotList[index] = slot.copy(isActive = isChecked)
+                                        val fullList = collectAllNumbers()
+                                        onSaveAll(fullList)
                                     },
                                     modifier = Modifier.scaleModifier(0.75f)
                                 )
@@ -1061,7 +1069,8 @@ fun AdminSlotsMatrixEditor(
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             OutlinedTextField(
                                 value = slot.number,
@@ -1085,6 +1094,20 @@ fun AdminSlotsMatrixEditor(
                                 singleLine = true,
                                 modifier = Modifier.weight(1f)
                             )
+
+                            Button(
+                                onClick = {
+                                    val fullList = collectAllNumbers()
+                                    onSaveAll(fullList)
+                                    Toast.makeText(context, "স্লট ${index + 1} সেভ হয়েছে!", Toast.LENGTH_SHORT).show()
+                                },
+                                shape = RoundedCornerShape(8.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = brandColor, contentColor = Color.White),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                                modifier = Modifier.height(44.dp)
+                            ) {
+                                Text("সেভ", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            }
                         }
                     }
                 }
