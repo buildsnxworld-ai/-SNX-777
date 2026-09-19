@@ -660,6 +660,7 @@ fun AdminPaymentNumbersTab(
     var isAddDialogOpen by remember { mutableStateOf(false) }
     var editingNumber by remember { mutableStateOf<AdminPaymentNumber?>(null) }
     var selectedMethodFilter by remember { mutableStateOf<PaymentMethod?>(null) }
+    var showSlotsMatrixMode by remember { mutableStateOf(false) }
 
     val filteredList = remember(numbers, selectedMethodFilter) {
         if (selectedMethodFilter == null) numbers else numbers.filter { it.method == selectedMethodFilter }
@@ -681,91 +682,146 @@ fun AdminPaymentNumbersTab(
             colors = CardDefaults.cardColors(containerColor = Color(0xFF131D31)),
             border = BorderStroke(1.dp, Color(0xFF1E293B))
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(14.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
-                        text = "ডাইনামিক পেমেন্ট নম্বর ম্যানেজার",
-                        color = Color.White,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = "মোট: ${numbers.size}টি (বিকাশ: $bkashCount, নগদ: $nagadCount, একটিভ: $activeCount)",
-                        color = Color(0xFF94A3B8),
-                        fontSize = 11.sp
-                    )
+            Column(modifier = Modifier.padding(14.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "ডাইনামিক পেমেন্ট নম্বর ম্যানেজার",
+                            color = Color.White,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "মোট: ${numbers.size}টি (বিকাশ: $bkashCount, নগদ: $nagadCount, সক্রিয়: $activeCount)",
+                            color = Color(0xFF94A3B8),
+                            fontSize = 11.sp
+                        )
+                    }
+
+                    Button(
+                        onClick = { isAddDialogOpen = true },
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E676), contentColor = Color.Black),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                        modifier = Modifier.testTag("admin_add_number_btn")
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("নতুন নম্বর", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
 
-                Button(
-                    onClick = { isAddDialogOpen = true },
-                    shape = RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E676), contentColor = Color.Black),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                    modifier = Modifier.testTag("admin_add_number_btn")
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // View Mode Switcher
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("নতুন নম্বর", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = if (!showSlotsMatrixMode) Color(0xFF00E676).copy(alpha = 0.15f) else Color(0xFF0A0E17),
+                        border = BorderStroke(1.dp, if (!showSlotsMatrixMode) Color(0xFF00E676) else Color(0xFF334155)),
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { showSlotsMatrixMode = false }
+                    ) {
+                        Text(
+                            text = "📋 কার্ড লিস্ট ভিউ (${numbers.size})",
+                            color = if (!showSlotsMatrixMode) Color(0xFF00E676) else Color(0xFF94A3B8),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        )
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = if (showSlotsMatrixMode) Color(0xFFFFD54F).copy(alpha = 0.15f) else Color(0xFF0A0E17),
+                        border = BorderStroke(1.dp, if (showSlotsMatrixMode) Color(0xFFFFD54F) else Color(0xFF334155)),
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { showSlotsMatrixMode = true }
+                    ) {
+                        Text(
+                            text = "⚡ ১০ বিকাশ ও ১০ নগদ স্লট গ্রিড",
+                            color = if (showSlotsMatrixMode) Color(0xFFFFD54F) else Color(0xFF94A3B8),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        )
+                    }
                 }
             }
         }
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // Method Filter Chips
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            FilterChip(
-                selected = selectedMethodFilter == null,
-                onClick = { selectedMethodFilter = null },
-                label = { Text("সব নম্বর (${numbers.size})", fontSize = 11.sp) }
+        if (showSlotsMatrixMode) {
+            // Dedicated 10 bKash & 10 Nagad Slots Editor Matrix
+            AdminSlotsMatrixEditor(
+                numbers = numbers,
+                onSaveAll = { updatedList ->
+                    adminManager.setAllPaymentNumbers(updatedList)
+                    Toast.makeText(context, "সফল! সমস্ত ২০টি নম্বর ক্লাউড ও Supabase-এ সেভ হয়েছে", Toast.LENGTH_LONG).show()
+                }
             )
-            FilterChip(
-                selected = selectedMethodFilter == PaymentMethod.BKASH,
-                onClick = { selectedMethodFilter = PaymentMethod.BKASH },
-                label = { Text("বিকাশ ($bkashCount)", fontSize = 11.sp) },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = Color(0xFFE2136E).copy(alpha = 0.2f),
-                    selectedLabelColor = Color(0xFFE2136E)
+        } else {
+            // Method Filter Chips
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                FilterChip(
+                    selected = selectedMethodFilter == null,
+                    onClick = { selectedMethodFilter = null },
+                    label = { Text("সব নম্বর (${numbers.size})", fontSize = 11.sp) }
                 )
-            )
-            FilterChip(
-                selected = selectedMethodFilter == PaymentMethod.NAGAD,
-                onClick = { selectedMethodFilter = PaymentMethod.NAGAD },
-                label = { Text("নগদ ($nagadCount)", fontSize = 11.sp) },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = Color(0xFFF7941D).copy(alpha = 0.2f),
-                    selectedLabelColor = Color(0xFFF7941D)
+                FilterChip(
+                    selected = selectedMethodFilter == PaymentMethod.BKASH,
+                    onClick = { selectedMethodFilter = PaymentMethod.BKASH },
+                    label = { Text("বিকাশ ($bkashCount)", fontSize = 11.sp) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = Color(0xFFE2136E).copy(alpha = 0.2f),
+                        selectedLabelColor = Color(0xFFE2136E)
+                    )
                 )
-            )
-        }
+                FilterChip(
+                    selected = selectedMethodFilter == PaymentMethod.NAGAD,
+                    onClick = { selectedMethodFilter = PaymentMethod.NAGAD },
+                    label = { Text("নগদ ($nagadCount)", fontSize = 11.sp) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = Color(0xFFF7941D).copy(alpha = 0.2f),
+                        selectedLabelColor = Color(0xFFF7941D)
+                    )
+                )
+            }
 
-        Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
-        // Numbers List
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items(filteredList, key = { it.id }) { item ->
-                PaymentNumberRowCard(
-                    item = item,
-                    onToggleActive = { adminManager.togglePaymentNumberStatus(item.id) },
-                    onEdit = { editingNumber = item },
-                    onDelete = {
-                        adminManager.deletePaymentNumber(item.id)
-                        Toast.makeText(context, "নম্বর ডিলিট করা হয়েছে", Toast.LENGTH_SHORT).show()
-                    }
-                )
+            // Numbers List
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(filteredList, key = { it.id }) { item ->
+                    PaymentNumberRowCard(
+                        item = item,
+                        onToggleActive = { adminManager.togglePaymentNumberStatus(item.id) },
+                        onEdit = { editingNumber = item },
+                        onDelete = {
+                            adminManager.deletePaymentNumber(item.id)
+                            Toast.makeText(context, "নম্বর ডিলিট করা হয়েছে", Toast.LENGTH_SHORT).show()
+                        }
+                    )
+                }
             }
         }
     }
@@ -796,6 +852,255 @@ fun AdminPaymentNumbersTab(
         )
     }
 }
+
+/**
+ * Direct 10 bKash & 10 Nagad Slots Editor Grid with instant one-tap cloud sync
+ */
+@Composable
+fun AdminSlotsMatrixEditor(
+    numbers: List<AdminPaymentNumber>,
+    onSaveAll: (List<AdminPaymentNumber>) -> Unit
+) {
+    var activeSubTab by remember { mutableStateOf(PaymentMethod.BKASH) }
+
+    // Initialize 10 bKash slots
+    val bkashSlots = remember(numbers) {
+        val existing = numbers.filter { it.method == PaymentMethod.BKASH }
+        val slots = mutableStateListOf<SlotItemState>()
+        for (i in 0 until 10) {
+            val item = existing.getOrNull(i)
+            slots.add(
+                SlotItemState(
+                    id = item?.id ?: "bk_${i + 1}",
+                    method = PaymentMethod.BKASH,
+                    slotNumber = i + 1,
+                    number = item?.number ?: "",
+                    label = item?.agentLabel ?: "bKash Agent ${i + 1}",
+                    isActive = item?.isActive ?: true
+                )
+            )
+        }
+        slots
+    }
+
+    // Initialize 10 Nagad slots
+    val nagadSlots = remember(numbers) {
+        val existing = numbers.filter { it.method == PaymentMethod.NAGAD }
+        val slots = mutableStateListOf<SlotItemState>()
+        for (i in 0 until 10) {
+            val item = existing.getOrNull(i)
+            slots.add(
+                SlotItemState(
+                    id = item?.id ?: "ng_${i + 1}",
+                    method = PaymentMethod.NAGAD,
+                    slotNumber = i + 1,
+                    number = item?.number ?: "",
+                    label = item?.agentLabel ?: "Nagad Merchant ${i + 1}",
+                    isActive = item?.isActive ?: true
+                )
+            )
+        }
+        slots
+    }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        // Tab switcher (10 bKash vs 10 Nagad)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = if (activeSubTab == PaymentMethod.BKASH) Color(0xFFE2136E) else Color(0xFF131D31),
+                border = BorderStroke(1.dp, if (activeSubTab == PaymentMethod.BKASH) Color(0xFFE2136E) else Color(0xFF334155)),
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable { activeSubTab = PaymentMethod.BKASH }
+            ) {
+                Text(
+                    text = "🌸 ১০টি বিকাশ নম্বর (bKash)",
+                    color = Color.White,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(vertical = 10.dp)
+                )
+            }
+
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = if (activeSubTab == PaymentMethod.NAGAD) Color(0xFFF7941D) else Color(0xFF131D31),
+                border = BorderStroke(1.dp, if (activeSubTab == PaymentMethod.NAGAD) Color(0xFFF7941D) else Color(0xFF334155)),
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable { activeSubTab = PaymentMethod.NAGAD }
+            ) {
+                Text(
+                    text = "🔥 ১০টি নগদ নম্বর (Nagad)",
+                    color = Color.White,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(vertical = 10.dp)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // Save All Button Banner
+        Button(
+            onClick = {
+                val fullList = mutableListOf<AdminPaymentNumber>()
+                bkashSlots.forEach { s ->
+                    if (s.number.isNotBlank()) {
+                        fullList.add(
+                            AdminPaymentNumber(
+                                id = s.id,
+                                method = PaymentMethod.BKASH,
+                                number = s.number.trim(),
+                                agentLabel = s.label.trim(),
+                                isActive = s.isActive
+                            )
+                        )
+                    }
+                }
+                nagadSlots.forEach { s ->
+                    if (s.number.isNotBlank()) {
+                        fullList.add(
+                            AdminPaymentNumber(
+                                id = s.id,
+                                method = PaymentMethod.NAGAD,
+                                number = s.number.trim(),
+                                agentLabel = s.label.trim(),
+                                isActive = s.isActive
+                            )
+                        )
+                    }
+                }
+                onSaveAll(fullList)
+            },
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E676), contentColor = Color.Black),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(46.dp)
+        ) {
+            Icon(Icons.Default.CloudUpload, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(modifier = Modifier.width(6.dp))
+            Text("🚀 সমস্ত ২০টি নম্বর ক্লাউড ও ওয়েবসাইটে সেভ করুন", fontSize = 12.sp, fontWeight = FontWeight.Black)
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // List of 10 Slots for the active method
+        val currentSlotList = if (activeSubTab == PaymentMethod.BKASH) bkashSlots else nagadSlots
+        val brandColor = if (activeSubTab == PaymentMethod.BKASH) Color(0xFFE2136E) else Color(0xFFF7941D)
+
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(currentSlotList.size) { index ->
+                val slot = currentSlotList[index]
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF131D31)),
+                    border = BorderStroke(1.dp, if (slot.isActive && slot.number.isNotBlank()) brandColor.copy(alpha = 0.4f) else Color(0xFF1E293B))
+                ) {
+                    Column(modifier = Modifier.padding(10.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = brandColor.copy(alpha = 0.2f),
+                                    modifier = Modifier.size(24.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Text(
+                                            text = "${index + 1}",
+                                            color = brandColor,
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "স্লট ${index + 1}: ${if (activeSubTab == PaymentMethod.BKASH) "বিকাশ নম্বর" else "নগদ নম্বর"}",
+                                    color = Color.White,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = if (slot.isActive) "সক্রিয়" else "নিষ্ক্রিয়",
+                                    color = if (slot.isActive) Color(0xFF00E676) else Color(0xFFFF5252),
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Switch(
+                                    checked = slot.isActive,
+                                    onCheckedChange = { isChecked ->
+                                        currentSlotList[index] = slot.copy(isActive = isChecked)
+                                    },
+                                    modifier = Modifier.scaleModifier(0.75f)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            OutlinedTextField(
+                                value = slot.number,
+                                onValueChange = { newNum ->
+                                    currentSlotList[index] = slot.copy(number = newNum)
+                                },
+                                label = { Text("নম্বর", fontSize = 11.sp) },
+                                placeholder = { Text("01XXXXXXXXX", fontSize = 11.sp, color = Color(0xFF64748B)) },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                                singleLine = true,
+                                modifier = Modifier.weight(1.2f)
+                            )
+
+                            OutlinedTextField(
+                                value = slot.label,
+                                onValueChange = { newLbl ->
+                                    currentSlotList[index] = slot.copy(label = newLbl)
+                                },
+                                label = { Text("লেবেল / শাখা", fontSize = 11.sp) },
+                                placeholder = { Text("Agent ${index + 1}", fontSize = 11.sp, color = Color(0xFF64748B)) },
+                                singleLine = true,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+data class SlotItemState(
+    val id: String,
+    val method: PaymentMethod,
+    val slotNumber: Int,
+    var number: String,
+    var label: String,
+    var isActive: Boolean
+)
 
 @Composable
 fun PaymentNumberRowCard(

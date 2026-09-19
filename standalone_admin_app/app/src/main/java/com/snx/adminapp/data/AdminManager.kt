@@ -333,6 +333,11 @@ class AdminManager private constructor(context: Context) {
         savePaymentNumbers(updated)
     }
 
+    fun setAllPaymentNumbers(list: List<AdminPaymentNumber>) {
+        _paymentNumbers.value = list
+        savePaymentNumbers(list)
+    }
+
     /**
      * Gets a dynamic deposit number for user deposit screen using round-robin / random distribution.
      */

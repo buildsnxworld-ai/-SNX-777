@@ -364,6 +364,11 @@ class AdminManager private constructor(context: Context) {
         savePaymentNumbers(updated)
     }
 
+    fun setAllPaymentNumbers(list: List<AdminPaymentNumber>) {
+        _paymentNumbers.value = list
+        savePaymentNumbers(list)
+    }
+
     /**
      * Gets a dynamic deposit number for user deposit screen using random distribution.
      * Selects a random active number added by Admin or fetched from Supabase Cloud.
@@ -966,8 +971,10 @@ class AdminManager private constructor(context: Context) {
     }
 
     fun getDefaultGamesList(): List<GameItem> = listOf(
-        GameItem("slot_777", "মেগা জ্যাকপট ৭৭৭", "Mega Jackpot 777", GameCategory.SLOTS, "HOT", "🎰", 10.0, 3420),
+        GameItem("super_ace", "সুপার এস (Super Ace)", "Super Ace", GameCategory.SLOTS, "HOT", "🃏", 10.0, 5420),
         GameItem("aviator_crash", "SPRIBE AVIATOR", "SPRIBE AVIATOR", GameCategory.CRASH, "HOT", "✈️", 50.0, 9480),
+        GameItem("athena_rising", "অ্যাথেনা রাইজিং (Athena Rising)", "Athena Rising", GameCategory.SLOTS, "JACKPOT", "⚡", 20.0, 3120),
+        GameItem("slot_777", "মেগা জ্যাকপট ৭৭৭", "Mega Jackpot 777", GameCategory.SLOTS, "HOT", "🎰", 10.0, 3420),
         GameItem("cricket_live", "বিপিএল ক্রিকেট লাইভ প্রেডিকশন", "BPL Cricket Live", GameCategory.SPORTS, "LIVE", "🏏", 50.0, 4120),
         GameItem("lucky_wheel", "দৈনিক লাকি স্পিন হুইল", "Daily Lucky Spin", GameCategory.HOT, "BONUS", "🎡", 0.0, 8910),
         GameItem("teen_patti", "তিন পাত্তি রয়েল", "Teen Patti Royal", GameCategory.CASINO, "HOT", "🃏", 20.0, 1850),
