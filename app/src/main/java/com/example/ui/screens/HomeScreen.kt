@@ -69,6 +69,7 @@ fun HomeScreen(
     onClaimCommission: (() -> Unit)? = null,
     onApplyCoupon: ((String) -> Unit)? = null,
     onInviteShared: (() -> Unit)? = null,
+    onOpenSecurityCenter: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val filteredGames = remember(selectedCategory, games) {
@@ -143,7 +144,7 @@ fun HomeScreen(
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(12.dp))
-                    // Action buttons in balance card: Deposit, Withdraw, Spin Wheel, Free Bonus
+                    // Payment Method Badges: bKash & Nagad
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
@@ -160,9 +161,9 @@ fun HomeScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = StringRes.t(language, "ডিপোজিট", "Deposit"),
+                                    text = "bKash " + StringRes.t(language, "ডিপোজিট", "Deposit"),
                                     color = Color.White,
-                                    fontSize = 10.sp,
+                                    fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold
                                 )
                             }
@@ -179,47 +180,9 @@ fun HomeScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = StringRes.t(language, "উত্তোলন", "Withdraw"),
+                                    text = "Nagad " + StringRes.t(language, "উত্তোলন", "Withdraw"),
                                     color = Color.White,
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = GoldPrimary,
-                            modifier = Modifier
-                                .clickable { onOpenWheel() }
-                                .testTag("home_spin_wheel_badge")
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "🎡 " + StringRes.t(language, "স্পিন হুইল", "Spin Wheel"),
-                                    color = Color.Black,
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = AccentEmerald,
-                            modifier = Modifier
-                                .clickable { onOpenWheel() }
-                                .testTag("home_free_bonus_badge")
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "🎁 " + StringRes.t(language, "ফ্রি বোনাস", "Free Bonus"),
-                                    color = Color.White,
-                                    fontSize = 10.sp,
+                                    fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold
                                 )
                             }
@@ -229,7 +192,7 @@ fun HomeScreen(
             }
         }
 
-        // Quick Feature Action Buttons (Positioned directly under balance card, next to Deposit & Withdraw)
+        // Quick Feature Action Buttons (Positioned directly under balance card, next to Deposit, Withdraw & Website link)
         item(span = { GridItemSpan(2) }) {
             val isLoggedIn = userProfile?.isLoggedIn == true
             QuickActionsBar(
@@ -258,11 +221,31 @@ fun HomeScreen(
                         onOpenAuth?.invoke(1)
                     }
                 },
-                onOpenWheel = {
-                    onOpenWheel()
+                onOpenChorki = {
+                    if (isLoggedIn) {
+                        onOpenWheel()
+                    } else {
+                        onShowToast?.invoke(
+                            if (language == AppLanguage.BN)
+                                "ফ্রি বোনাস নিতে অনুগ্রহ করে প্রথমে বিনামূল্যে রেজিস্ট্রেশন অথবা লগইন করুন"
+                            else
+                                "Please register or login first to claim free bonus"
+                        )
+                        onOpenAuth?.invoke(1)
+                    }
                 },
-                onClaimBonus = {
-                    onOpenWheel()
+                onOpenSecurityCenter = {
+                    if (isLoggedIn) {
+                        onOpenSecurityCenter?.invoke()
+                    } else {
+                        onShowToast?.invoke(
+                            if (language == AppLanguage.BN)
+                                "সিকিউরিটি সেন্টার ব্যবহার করতে প্রথমে লগইন অথবা রেজিস্ট্রেশন করুন"
+                            else
+                                "Please login or register first to access Security Center"
+                        )
+                        onOpenAuth?.invoke(1)
+                    }
                 },
                 onShare = onShare
             )
@@ -537,8 +520,8 @@ private fun QuickActionsBar(
     language: AppLanguage,
     onOpenDeposit: () -> Unit,
     onOpenWithdraw: () -> Unit,
-    onOpenWheel: () -> Unit,
-    onClaimBonus: () -> Unit,
+    onOpenChorki: () -> Unit,
+    onOpenSecurityCenter: () -> Unit,
     onShare: () -> Unit
 ) {
     Row(
@@ -547,7 +530,7 @@ private fun QuickActionsBar(
             .clip(RoundedCornerShape(14.dp))
             .background(Slate800)
             .border(1.dp, CasinoBorderSubtle, RoundedCornerShape(14.dp))
-            .padding(vertical = 10.dp, horizontal = 4.dp),
+            .padding(vertical = 10.dp, horizontal = 2.dp),
         horizontalArrangement = Arrangement.SpaceAround
     ) {
         QuickActionButton(
@@ -565,18 +548,18 @@ private fun QuickActionsBar(
             testTag = "quick_action_withdraw"
         )
         QuickActionButton(
-            emoji = "🎡",
-            title = StringRes.t(language, "লাকি স্পিন", "Spin Wheel"),
-            color = GoldPrimary,
-            onClick = onOpenWheel,
-            testTag = "quick_action_wheel"
-        )
-        QuickActionButton(
             emoji = "🎁",
             title = StringRes.t(language, "ফ্রি বোনাস", "Free Bonus"),
-            color = AccentEmerald,
-            onClick = onClaimBonus,
+            color = GoldPrimary,
+            onClick = onOpenChorki,
             testTag = "quick_action_bonus"
+        )
+        QuickActionButton(
+            emoji = "🛡️",
+            title = StringRes.t(language, "সিকিউরিটি", "Security"),
+            color = AccentEmerald,
+            onClick = onOpenSecurityCenter,
+            testTag = "quick_action_security"
         )
         QuickActionButton(
             emoji = "🌐",

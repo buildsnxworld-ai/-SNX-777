@@ -284,6 +284,66 @@ class SessionManager(context: Context) {
     }
 
     /**
+     * Updates user's registered phone number.
+     */
+    fun updateUserPhone(oldPhone: String, newPhone: String, pass: String): Pair<Boolean, String> {
+        val cleanNewPhone = newPhone.trim()
+        if (cleanNewPhone.length < 10) {
+            return Pair(false, "সঠিক ১১ ডিজিটের মোবাইল নম্বর প্রদান করুন")
+        }
+
+        val users = getRegisteredAccounts().toMutableList()
+        val index = users.indexOfFirst {
+            it.phone == oldPhone || (it.phone.isNotBlank() && oldPhone.isNotBlank() && (it.phone.endsWith(oldPhone) || oldPhone.endsWith(it.phone)))
+        }
+
+        if (index != -1) {
+            val user = users[index]
+            if (pass.isNotBlank() && user.password != pass) {
+                return Pair(false, "অ্যাকাউন্টের বর্তমান পাসওয়ার্ড সঠিক নয়")
+            }
+            if (isPhoneOrEmailRegistered(cleanNewPhone, "") && cleanNewPhone != user.phone) {
+                return Pair(false, "এই নতুন মোবাইল নম্বরটি ইতিমধ্যে অন্য অ্যাকাউন্টে ব্যবহৃত হচ্ছে")
+            }
+            val updatedUser = user.copy(phone = cleanNewPhone)
+            users[index] = updatedUser
+            saveRegisteredAccountsList(users)
+        }
+
+        val session = getUserSession()
+        if (session.isLoggedIn) {
+            saveUserSession(session.copy(phone = cleanNewPhone))
+        }
+        return Pair(true, "মোবাইল নম্বর সফলভাবে পরিবর্তন করা হয়েছে!")
+    }
+
+    /**
+     * Updates user's registered password.
+     */
+    fun updateUserPassword(phone: String, oldPass: String, newPass: String): Pair<Boolean, String> {
+        if (newPass.length < 4) {
+            return Pair(false, "নতুন পাসওয়ার্ড কমপক্ষে ৪ অক্ষরের হতে হবে")
+        }
+
+        val users = getRegisteredAccounts().toMutableList()
+        val index = users.indexOfFirst {
+            it.phone == phone || (it.phone.isNotBlank() && phone.isNotBlank() && (it.phone.endsWith(phone) || phone.endsWith(it.phone)))
+        }
+
+        if (index != -1) {
+            val user = users[index]
+            if (oldPass.isNotBlank() && user.password != oldPass) {
+                return Pair(false, "বর্তমান পাসওয়ার্ড সঠিক নয়")
+            }
+            val updatedUser = user.copy(password = newPass)
+            users[index] = updatedUser
+            saveRegisteredAccountsList(users)
+        }
+
+        return Pair(true, "পাসওয়ার্ড সফলভাবে পরিবর্তন করা হয়েছে!")
+    }
+
+    /**
      * Authenticates a registered account with phone/email and password.
      */
     fun findRegisteredAccount(identifier: String, pass: String): RegisteredAccount? {

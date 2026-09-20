@@ -63,6 +63,9 @@ class SnxViewModel(application: Application) : AndroidViewModel(application) {
     private val _isSupportModalOpen = MutableStateFlow(false)
     val isSupportModalOpen: StateFlow<Boolean> = _isSupportModalOpen.asStateFlow()
 
+    private val _isSecurityCenterOpen = MutableStateFlow(false)
+    val isSecurityCenterOpen: StateFlow<Boolean> = _isSecurityCenterOpen.asStateFlow()
+
     private val _isPromotionalAdsOpen = MutableStateFlow(true)
     val isPromotionalAdsOpen: StateFlow<Boolean> = _isPromotionalAdsOpen.asStateFlow()
 
@@ -484,6 +487,37 @@ class SnxViewModel(application: Application) : AndroidViewModel(application) {
         _userProfile.update { it.copy(isLoggedIn = false) }
         sessionManager.clearSession()
         showToast(if (_language.value == AppLanguage.BN) "লগআউট সফল হয়েছে" else "Logged out successfully")
+    }
+
+    fun openSecurityCenter() {
+        _isSecurityCenterOpen.value = true
+    }
+
+    fun closeSecurityCenter() {
+        _isSecurityCenterOpen.value = false
+    }
+
+    fun updatePhoneNumber(newPhone: String, pass: String): Pair<Boolean, String> {
+        val currentPhone = _userProfile.value.phone
+        val result = sessionManager.updateUserPhone(currentPhone, newPhone, pass)
+        if (result.first) {
+            _userProfile.update { it.copy(phone = newPhone.trim()) }
+            showToast(if (_language.value == AppLanguage.BN) result.second else "Phone number updated successfully!")
+        } else {
+            showToast(result.second)
+        }
+        return result
+    }
+
+    fun updatePassword(oldPass: String, newPass: String): Pair<Boolean, String> {
+        val currentPhone = _userProfile.value.phone
+        val result = sessionManager.updateUserPassword(currentPhone, oldPass, newPass)
+        if (result.first) {
+            showToast(if (_language.value == AppLanguage.BN) result.second else "Password changed successfully!")
+        } else {
+            showToast(result.second)
+        }
+        return result
     }
 
     fun submitDeposit(method: PaymentMethod, amount: Double, accountNo: String, trxId: String): Boolean {

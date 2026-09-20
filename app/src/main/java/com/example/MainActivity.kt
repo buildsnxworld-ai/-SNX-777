@@ -40,6 +40,7 @@ import com.example.ui.components.GameNetworkErrorModal
 import com.example.ui.components.InsufficientBalanceModal
 import com.example.ui.components.NoInternetOverlay
 import com.example.ui.components.PromotionalAdsModal
+import com.example.ui.components.SecurityCenterModal
 import com.example.ui.games.AviatorCrashGame
 import com.example.ui.games.CricketBettingGame
 import com.example.ui.games.DiceRollGame
@@ -89,6 +90,7 @@ fun SnxApp(viewModel: SnxViewModel = viewModel()) {
     val isAuthModalOpen by viewModel.isAuthModalOpen.collectAsStateWithLifecycle()
     val authModalInitialTab by viewModel.authModalInitialTab.collectAsStateWithLifecycle()
     val isSupportModalOpen by viewModel.isSupportModalOpen.collectAsStateWithLifecycle()
+    val isSecurityCenterOpen by viewModel.isSecurityCenterOpen.collectAsStateWithLifecycle()
     val isPromotionalAdsOpen by viewModel.isPromotionalAdsOpen.collectAsStateWithLifecycle()
     val isInsufficientBalanceModalOpen by viewModel.isInsufficientBalanceModalOpen.collectAsStateWithLifecycle()
     val pendingGameId by viewModel.pendingGameId.collectAsStateWithLifecycle()
@@ -174,7 +176,8 @@ fun SnxApp(viewModel: SnxViewModel = viewModel()) {
                     onShowToast = { viewModel.showToast(it) },
                     onClaimCommission = { viewModel.claimReferralCommission() },
                     onApplyCoupon = { viewModel.applyDiscountCoupon(it) },
-                    onInviteShared = { viewModel.recordFriendInvite() }
+                    onInviteShared = { viewModel.recordFriendInvite() },
+                    onOpenSecurityCenter = { viewModel.openSecurityCenter() }
                 )
                 1 -> GamesScreen(
                     games = currentGamesList,
@@ -215,7 +218,8 @@ fun SnxApp(viewModel: SnxViewModel = viewModel()) {
                     onShowToast = { viewModel.showToast(it) },
                     onOpenApkDownload = { isApkDownloadModalOpen = true },
                     onClaimCommission = { viewModel.claimReferralCommission() },
-                    onApplyCoupon = { viewModel.applyDiscountCoupon(it) }
+                    onApplyCoupon = { viewModel.applyDiscountCoupon(it) },
+                    onOpenSecurityCenter = { viewModel.openSecurityCenter() }
                 )
             }
 
@@ -301,6 +305,16 @@ fun SnxApp(viewModel: SnxViewModel = viewModel()) {
                 isOpen = isSupportModalOpen,
                 language = language,
                 onDismiss = { viewModel.closeSupportModal() }
+            )
+
+            // Security Center Modal (Mobile Number & Password Management)
+            SecurityCenterModal(
+                isOpen = isSecurityCenterOpen,
+                userProfile = userProfile,
+                language = language,
+                onUpdatePhone = { newPhone, pass -> viewModel.updatePhoneNumber(newPhone, pass) },
+                onUpdatePassword = { oldPass, newPass -> viewModel.updatePassword(oldPass, newPass) },
+                onDismiss = { viewModel.closeSecurityCenter() }
             )
 
             // Promotional Entry Ads Pop-up

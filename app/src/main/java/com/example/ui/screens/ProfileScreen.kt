@@ -51,6 +51,7 @@ fun ProfileScreen(
     onOpenApkDownload: (() -> Unit)? = null,
     onClaimCommission: (() -> Unit)? = null,
     onApplyCoupon: ((String) -> Unit)? = null,
+    onOpenSecurityCenter: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -236,11 +237,11 @@ fun ProfileScreen(
             border = CardDefaults.outlinedCardBorder().copy(brush = Brush.linearGradient(listOf(CasinoBorderSubtle, CasinoBorderSubtle)))
         ) {
             Column {
-                // Claim Daily Bonus (চরকি ১৳ - ২০০৳)
+                // Claim Daily Bonus (চরকি ১৳ - ১০০৳)
                 ProfileOptionRow(
                     icon = Icons.Default.CardGiftcard,
-                    title = StringRes.t(language, "দৈনিক ফ্রি উপহার চরকি", "Daily Free Gift Spin Wheel"),
-                    subtitle = StringRes.t(language, "২৪ ঘণ্টায় ১ বার স্পিন করে জিতে নিন ১৳ থেকে ২০০৳ ক্যাশ", "Spin once per 24H for ৳1 to ৳200 cash bonus"),
+                    title = StringRes.t(language, "দৈনিক ফ্রি চরকি স্পিন", "Daily Free Chorki Spin"),
+                    subtitle = StringRes.t(language, "২৪ ঘণ্টায় ১ বার স্পিন করে জিতে নিন ১৳ থেকে ১০০৳ ক্যাশ", "Spin once per 24H for ৳1 to ৳100 cash bonus"),
                     onClick = {
                         if (!userProfile.isLoggedIn) {
                             onShowToast(
@@ -266,6 +267,29 @@ fun ProfileScreen(
                     subtitle = StringRes.t(language, "যেকোনো সমস্যায় সহায়তা পেতে যোগাযোগ করুন", "Contact us for help anytime"),
                     onClick = onOpenSupport,
                     testTag = "option_support"
+                )
+
+                HorizontalDivider(color = CasinoBorderSubtle)
+
+                // Security Center (নাম্বার ও পাসওয়ার্ড পরিবর্তন)
+                ProfileOptionRow(
+                    icon = Icons.Default.Security,
+                    title = StringRes.t(language, "সিকিউরিটি সেন্টার", "Security Center"),
+                    subtitle = StringRes.t(language, "মোবাইল নম্বর ও একাউন্ট পাসওয়ার্ড পরিবর্তন করুন", "Change mobile number & account password"),
+                    onClick = {
+                        if (!userProfile.isLoggedIn) {
+                            onShowToast(
+                                if (language == AppLanguage.BN)
+                                    "সিকিউরিটি সেন্টার ব্যবহার করতে প্রথমে লগইন অথবা রেজিস্ট্রেশন করুন"
+                                else
+                                    "Please login or register first to access Security Center"
+                            )
+                            onOpenAuth(1)
+                        } else {
+                            onOpenSecurityCenter?.invoke()
+                        }
+                    },
+                    testTag = "option_security_center"
                 )
             }
         }
