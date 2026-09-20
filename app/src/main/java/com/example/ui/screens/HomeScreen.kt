@@ -143,7 +143,7 @@ fun HomeScreen(
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(12.dp))
-                    // Payment methods: bKash & Nagad
+                    // Action buttons in balance card: Deposit, Withdraw, Spin Wheel, Free Bonus
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
@@ -160,7 +160,7 @@ fun HomeScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "bKash",
+                                    text = StringRes.t(language, "ডিপোজিট", "Deposit"),
                                     color = Color.White,
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold
@@ -171,7 +171,7 @@ fun HomeScreen(
                             shape = RoundedCornerShape(8.dp),
                             color = NagadOrange,
                             modifier = Modifier
-                                .clickable { onOpenDeposit() }
+                                .clickable { onOpenWithdraw() }
                                 .testTag("home_deposit_nagad_badge")
                         ) {
                             Row(
@@ -179,7 +179,45 @@ fun HomeScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "Nagad",
+                                    text = StringRes.t(language, "উত্তোলন", "Withdraw"),
+                                    color = Color.White,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = GoldPrimary,
+                            modifier = Modifier
+                                .clickable { onOpenWheel() }
+                                .testTag("home_spin_wheel_badge")
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "🎡 " + StringRes.t(language, "স্পিন হুইল", "Spin Wheel"),
+                                    color = Color.Black,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = AccentEmerald,
+                            modifier = Modifier
+                                .clickable { onOpenWheel() }
+                                .testTag("home_free_bonus_badge")
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "🎁 " + StringRes.t(language, "ফ্রি বোনাস", "Free Bonus"),
                                     color = Color.White,
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold
@@ -191,28 +229,7 @@ fun HomeScreen(
             }
         }
 
-        // Hero Promotional Banner
-        item(span = { GridItemSpan(2) }) {
-            val isLoggedIn = userProfile?.isLoggedIn == true
-            HeroBannerCard(
-                language = language,
-                onDepositClick = {
-                    if (isLoggedIn) {
-                        onOpenDeposit()
-                    } else {
-                        onShowToast?.invoke(
-                            if (language == AppLanguage.BN)
-                                "ডিপোজিট করতে অনুগ্রহ করে প্রথমে বিনামূল্যে রেজিস্ট্রেশন করুন"
-                            else
-                                "Please register free to make a deposit"
-                        )
-                        onOpenAuth?.invoke(1)
-                    }
-                }
-            )
-        }
-
-        // Quick Feature Action Buttons
+        // Quick Feature Action Buttons (Positioned directly under balance card, next to Deposit & Withdraw)
         item(span = { GridItemSpan(2) }) {
             val isLoggedIn = userProfile?.isLoggedIn == true
             QuickActionsBar(
@@ -242,30 +259,33 @@ fun HomeScreen(
                     }
                 },
                 onOpenWheel = {
-                    if (isLoggedIn) onOpenWheel()
-                    else {
-                        onShowToast?.invoke(
-                            if (language == AppLanguage.BN)
-                                "লাকি স্পিন খেলতে অনুগ্রহ করে প্রথমে বিনামূল্যে রেজিস্ট্রেশন অথবা লগইন করুন"
-                            else
-                                "Please register or login first to spin the wheel"
-                        )
-                        onOpenAuth?.invoke(1)
-                    }
+                    onOpenWheel()
                 },
                 onClaimBonus = {
-                    if (isLoggedIn) onClaimDailyBonus()
-                    else {
+                    onOpenWheel()
+                },
+                onShare = onShare
+            )
+        }
+
+        // Hero Promotional Banner
+        item(span = { GridItemSpan(2) }) {
+            val isLoggedIn = userProfile?.isLoggedIn == true
+            HeroBannerCard(
+                language = language,
+                onDepositClick = {
+                    if (isLoggedIn) {
+                        onOpenDeposit()
+                    } else {
                         onShowToast?.invoke(
                             if (language == AppLanguage.BN)
-                                "ডেইলি বোনাস নিতে অনুগ্রহ করে প্রথমে বিনামূল্যে রেজিস্ট্রেশন অথবা লগইন করুন"
+                                "ডিপোজিট করতে অনুগ্রহ করে প্রথমে বিনামূল্যে রেজিস্ট্রেশন করুন"
                             else
-                                "Please register or login first to claim daily bonus"
+                                "Please register free to make a deposit"
                         )
                         onOpenAuth?.invoke(1)
                     }
-                },
-                onShare = onShare
+                }
             )
         }
 
