@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun HotGamesSection(
     onOpenAviator: () -> Unit,
+    onOpenSuperAce: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -188,7 +189,7 @@ fun HotGamesSection(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Box(modifier = Modifier.weight(1f)) {
-                SuperAceCard()
+                SuperAceCard(onPlay = onOpenSuperAce)
             }
             Box(modifier = Modifier.weight(1f)) {
                 WildAthenaRisingCard()
@@ -219,14 +220,17 @@ fun HotGamesSection(
 }
 
 // -------------------------------------------------------------
-// GAME 1: Super Ace (Static)
+// GAME 1: Super Ace (Interactive)
 // -------------------------------------------------------------
 @Composable
-private fun SuperAceCard() {
+private fun SuperAceCard(onPlay: (() -> Unit)? = null) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(154.dp),
+            .height(154.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .clickable(enabled = onPlay != null) { onPlay?.invoke() }
+            .testTag("super_ace_hot_card"),
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFF6B8E23)),
         border = BorderStroke(1.dp, Color(0xFF264C35))

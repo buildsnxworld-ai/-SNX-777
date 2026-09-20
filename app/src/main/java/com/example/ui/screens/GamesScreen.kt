@@ -143,6 +143,9 @@ fun GamesScreen(
                 } else {
                     onOpenGame("aviator_crash")
                 }
+            },
+            onOpenSuperAce = {
+                onOpenGame("super_ace")
             }
         )
 

@@ -1,0 +1,168 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="180dp"
+    android:height="240dp"
+    android:viewportWidth="180"
+    android:viewportHeight="240">
+
+    <!-- Card Background (Crisp Light White/Grey) -->
+    <path
+        android:pathData="M8,0 L172,0 A8,8 0 0 1 180,8 L180,232 A8,8 0 0 1 172,240 L8,240 A8,8 0 0 1 0,232 L0,8 A8,8 0 0 1 8,0 Z"
+        android:fillColor="#F8FAFC" />
+
+    <!-- Card Border -->
+    <path
+        android:pathData="M8,1 L172,1 A7,7 0 0 1 179,8 L179,232 A7,7 0 0 1 172,239 L8,239 A7,7 0 0 1 1,232 L1,8 A7,7 0 0 1 8,1 Z"
+        android:strokeColor="#CBD5E1"
+        android:strokeWidth="1.5" />
+
+    <!-- Letter Q in Top-Left (Bold Crisp Sans/Serif) -->
+    <!-- Outer oval of Q -->
+    <path
+        android:pathData="M16,6 C10,6 6,12 6,20 C6,28 10,34 16,34 C19,34 22,32 24,29 L28,34 L31,31 L26,26 C27,24 27,22 27,20 C27,12 23,6 16,6 Z
+                          M16,11 C20,11 22,14 22,20 C22,25 20,28 16,28 C13,28 11,25 11,20 C11,14 13,11 16,11 Z"
+        android:fillColor="#000000" />
+
+    <!-- QUEEN PORTRAIT -->
+
+    <!-- 1. Dark Burgundy Headdress / Bonnet (Polygonal Peak) -->
+    <path
+        android:pathData="M60,76 L60,32 L110,18 L160,32 L160,76 Z"
+        android:fillColor="#450A0A"
+        android:strokeColor="#1E293B"
+        android:strokeWidth="3" />
+
+    <!-- Red Decorative Band across bottom of headdress -->
+    <path
+        android:pathData="M60,58 L160,58 L160,76 L60,76 Z"
+        android:fillColor="#DC2626"
+        android:strokeColor="#1E293B"
+        android:strokeWidth="2.5" />
+
+    <!-- 5 Black Crosses on the Red Band (✝ ✝ ✝ ✝ ✝) -->
+    <path
+        android:pathData="M70,61 L70,73 M66,66 L74,66
+                          M90,61 L90,73 M86,66 L94,66
+                          M110,61 L110,73 M106,66 L114,66
+                          M130,61 L130,73 M126,66 L134,66
+                          M150,61 L150,73 M146,66 L154,66"
+        android:strokeColor="#1E293B"
+        android:strokeWidth="2.5" />
+
+    <!-- 2. Red Royal Hood (Draping on sides) -->
+    <!-- Left Hood -->
+    <path
+        android:pathData="M60,76 L72,76 L68,162 L42,186 L42,102 Z"
+        android:fillColor="#DC2626"
+        android:strokeColor="#1E293B"
+        android:strokeWidth="3" />
+    <!-- Right Hood -->
+    <path
+        android:pathData="M160,76 L148,76 L152,162 L172,186 L172,102 Z"
+        android:fillColor="#DC2626"
+        android:strokeColor="#1E293B"
+        android:strokeWidth="3" />
+
+    <!-- 3. Silver-Grey Hair (Center-Parted) -->
+    <path
+        android:pathData="M72,76 L148,76 L148,180 L128,176 L110,110 L92,176 L72,180 Z"
+        android:fillColor="#94A3B8"
+        android:strokeColor="#1E293B"
+        android:strokeWidth="3" />
+    <!-- Strands in hair -->
+    <path
+        android:pathData="M84,84 L84,168 M136,84 L136,168"
+        android:strokeColor="#64748B"
+        android:strokeWidth="2" />
+
+    <!-- 4. Face (White Serene Court Face) -->
+    <path
+        android:pathData="M78,110 L110,92 L142,110 L132,168 Q110,182 88,168 Z"
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#1E293B"
+        android:strokeWidth="3" />
+
+    <!-- Left Eye (Almond, Double Arch) -->
+    <path
+        android:pathData="M86,122 L102,122 C102,128 86,128 86,122 Z"
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#1E293B"
+        android:strokeWidth="2" />
+    <path
+        android:pathData="M93,122 A2,2 0 1,1 93,126 A2,2 0 1,1 93,122"
+        android:fillColor="#1E293B" />
+    <path
+        android:pathData="M84,115 Q94,110 104,115"
+        android:strokeColor="#1E293B"
+        android:strokeWidth="2.5" />
+    <path
+        android:pathData="M86,129 Q94,133 102,129"
+        android:strokeColor="#1E293B"
+        android:strokeWidth="1.5" />
+
+    <!-- Right Eye (Almond, Double Arch) -->
+    <path
+        android:pathData="M118,122 L134,122 C134,128 118,128 118,122 Z"
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#1E293B"
+        android:strokeWidth="2" />
+    <path
+        android:pathData="M125,122 A2,2 0 1,1 125,126 A2,2 0 1,1 125,122"
+        android:fillColor="#1E293B" />
+    <path
+        android:pathData="M116,115 Q126,110 136,115"
+        android:strokeColor="#1E293B"
+        android:strokeWidth="2.5" />
+    <path
+        android:pathData="M118,129 Q126,133 134,129"
+        android:strokeColor="#1E293B"
+        android:strokeWidth="1.5" />
+
+    <!-- Nose -->
+    <path
+        android:pathData="M110,116 L107,146 L115,146"
+        android:strokeColor="#1E293B"
+        android:strokeWidth="2.5" />
+
+    <!-- Lips -->
+    <path
+        android:pathData="M103,158 Q110,156 117,158"
+        android:strokeColor="#1E293B"
+        android:strokeWidth="2.5" />
+
+    <!-- 5. White Ermine Collar with 5 Black Diamonds -->
+    <path
+        android:pathData="M66,176 Q110,198 154,176 L146,204 Q110,218 74,204 Z"
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#1E293B"
+        android:strokeWidth="3" />
+
+    <!-- 5 Black Diamond Ermine Spots (◆ ◆ ◆ ◆ ◆) -->
+    <path
+        android:pathData="M82,192 L86,186 L90,192 L86,198 Z
+                          M97,196 L101,190 L105,196 L101,202 Z
+                          M110,198 L114,192 L118,198 L114,204 Z
+                          M123,196 L127,190 L131,196 L127,202 Z
+                          M138,192 L142,186 L146,192 L142,198 Z"
+        android:fillColor="#1E293B" />
+
+    <!-- 6. Scarlet Red Royal Gown -->
+    <path
+        android:pathData="M26,238 L68,192 L152,192 L174,238 Z"
+        android:fillColor="#DC2626"
+        android:strokeColor="#1E293B"
+        android:strokeWidth="3" />
+
+    <!-- Dark Burgundy V-neck throat insert -->
+    <path
+        android:pathData="M98,212 L110,236 L122,212 Z"
+        android:fillColor="#450A0A"
+        android:strokeColor="#1E293B"
+        android:strokeWidth="2" />
+
+    <!-- White Piping stripes on gown -->
+    <path
+        android:pathData="M44,228 L80,204 M140,204 L164,228"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="3.5" />
+
+</vector>

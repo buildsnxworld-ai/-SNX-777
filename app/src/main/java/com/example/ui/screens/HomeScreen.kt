@@ -305,6 +305,9 @@ fun HomeScreen(
                     } else {
                         onOpenGame("aviator_crash")
                     }
+                },
+                onOpenSuperAce = {
+                    onOpenGame("super_ace")
                 }
             )
         }

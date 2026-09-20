@@ -260,6 +260,11 @@ class SnxViewModel(application: Application) : AndroidViewModel(application) {
             return
         }
 
+        if (gameId == "super_ace") {
+            _activeModalGame.value = "super_ace"
+            return
+        }
+
         if (!_userProfile.value.isLoggedIn) {
             showToast(
                 if (_language.value == AppLanguage.BN)

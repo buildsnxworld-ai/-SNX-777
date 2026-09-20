@@ -45,9 +45,10 @@ import com.example.ui.games.DiceRollGame
 import com.example.ui.games.DragonTigerGame
 import com.example.ui.games.LuckyWheelGame
 import com.example.ui.games.SlotMachineGame
+import com.example.ui.games.SuperAceGame
 import com.example.ui.games.TeenPattiGame
 import com.example.ui.screens.*
-import com.example.admin.AdminAppRoot
+
 import com.example.data.SnxCloudSyncService
 import com.example.signal.SignalScreen
 import com.example.signal.SignalViewModel
@@ -227,6 +228,14 @@ fun SnxApp(viewModel: SnxViewModel = viewModel()) {
 
             AviatorCrashGame(
                 isOpen = activeModalGame == "aviator_crash",
+                currentBalance = userProfile.balanceBDT,
+                language = language,
+                onBalanceChange = { viewModel.adjustBalance(it) },
+                onDismiss = { viewModel.closeGame() }
+            )
+
+            SuperAceGame(
+                isOpen = activeModalGame == "super_ace",
                 currentBalance = userProfile.balanceBDT,
                 language = language,
                 onBalanceChange = { viewModel.adjustBalance(it) },

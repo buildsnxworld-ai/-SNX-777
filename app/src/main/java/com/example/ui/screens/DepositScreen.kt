@@ -61,49 +61,59 @@ fun DepositScreen(
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
 
-    val adminManager = remember { AdminManager.getInstance(context) }
-    val paymentNumbers by adminManager.paymentNumbers.collectAsState()
     var selectedMethod by remember { mutableStateOf(PaymentMethod.BKASH) }
-    var currentDepositNumber by remember { mutableStateOf("") }
 
-    // Pick a random number once when user enters the page or switches method.
-    // It will NEVER change or fluctuate while the user remains on the deposit page.
-    fun pickRandomNumberForMethod(method: PaymentMethod, numbers: List<com.example.data.AdminPaymentNumber>) {
-        val activeMatches = numbers.filter { it.method == method && it.isActive && it.number.isNotBlank() }
-        currentDepositNumber = if (activeMatches.isNotEmpty()) {
-            activeMatches.random().number
-        } else {
-            adminManager.getRandomActiveDepositNumber(method)
-        }
+    val bkashNumbersList = remember {
+        listOf(
+            "01356033503",
+            "01318097241",
+            "01357287095",
+            "01349782631",
+            "01349845907",
+            "01349845902"
+        )
     }
 
-    // Only pick when entering the page / initial composition, and keep active cloud sync running
+    val nagadNumbersList = remember {
+        listOf(
+            "01357286400",
+            "01356033503",
+            "01318097241",
+            "01357287095",
+            "01349845888",
+            "01349845906",
+            "01349845907",
+            "01349845902"
+        )
+    }
+
+    var bkashIndex by remember { mutableStateOf((0 until bkashNumbersList.size).random()) }
+    var nagadIndex by remember { mutableStateOf((0 until nagadNumbersList.size).random()) }
+    var secondsRemaining by remember { mutableStateOf(300) } // 5 minutes = 300 seconds
+
+    // 5-minute auto-rotation timer with live countdown
     LaunchedEffect(Unit) {
-        adminManager.reloadFromStorage()
-        SharedDataStore.pullFromOtherApp(context)
-        SnxCloudSyncService.pullFromCloud(context)
-        adminManager.reloadFromStorage()
-        if (currentDepositNumber.isBlank()) {
-            pickRandomNumberForMethod(selectedMethod, adminManager.paymentNumbers.value)
-        }
         while (true) {
-            kotlinx.coroutines.delay(1500)
-            SnxCloudSyncService.pullFromCloud(context)
+            kotlinx.coroutines.delay(1000L)
+            if (secondsRemaining > 1) {
+                secondsRemaining--
+            } else {
+                secondsRemaining = 300
+                bkashIndex = (bkashIndex + 1) % bkashNumbersList.size
+                nagadIndex = (nagadIndex + 1) % nagadNumbersList.size
+            }
         }
     }
 
-    // When user explicitly switches method (bKash <-> Nagad), pick a random number for that method
-    LaunchedEffect(selectedMethod) {
-        pickRandomNumberForMethod(selectedMethod, adminManager.paymentNumbers.value)
+    val currentDepositNumber = if (selectedMethod == PaymentMethod.BKASH) {
+        bkashNumbersList[bkashIndex % bkashNumbersList.size]
+    } else {
+        nagadNumbersList[nagadIndex % nagadNumbersList.size]
     }
 
-    // When payment numbers update from Admin or Cloud, ensure current deposit number is active and valid
-    LaunchedEffect(paymentNumbers) {
-        val activeMatches = paymentNumbers.filter { it.method == selectedMethod && it.isActive && it.number.isNotBlank() }
-        if (currentDepositNumber.isBlank() || (activeMatches.isNotEmpty() && activeMatches.none { it.number == currentDepositNumber })) {
-            pickRandomNumberForMethod(selectedMethod, paymentNumbers)
-        }
-    }
+    val minutes = secondsRemaining / 60
+    val secs = secondsRemaining % 60
+    val timeFormatted = String.format("%02d:%02d", minutes, secs)
     var selectedAmount by remember { mutableStateOf(300.0) }
     var customAmountText by remember { mutableStateOf("") }
     var senderPhoneInput by remember { mutableStateOf(userProfile.phone) }
@@ -238,7 +248,7 @@ fun DepositScreen(
             border = CardDefaults.outlinedCardBorder().copy(brush = Brush.linearGradient(listOf(Color(selectedMethod.colorHex).copy(alpha = 0.7f), CasinoBorderSubtle)))
         ) {
             Column(modifier = Modifier.padding(14.dp)) {
-                val activeNumber = if (currentDepositNumber.isNotBlank()) currentDepositNumber else adminManager.getActiveDepositNumber(selectedMethod)
+                val activeNumber = currentDepositNumber
                 if (activeNumber.isNotEmpty()) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -288,9 +298,49 @@ fun DepositScreen(
                             Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(14.dp))
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = StringRes.t(language, "কপি", "Copy"),
+                                text = StringRes.t(language, "কپی", "Copy"),
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Live countdown timer banner showing 5-minute auto rotation
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp),
+                        color = Slate900.copy(alpha = 0.9f),
+                        border = BorderStroke(1.dp, GoldPrimary.copy(alpha = 0.3f))
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Timer,
+                                    contentDescription = null,
+                                    tint = GoldPrimary,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "নম্বর পরিবর্তন হতে বাকি:",
+                                    color = Color.White.copy(alpha = 0.9f),
+                                    fontSize = 11.5.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                            Text(
+                                text = timeFormatted,
+                                color = GoldLight,
+                                fontSize = 13.5.sp,
+                                fontWeight = FontWeight.Black
                             )
                         }
                     }

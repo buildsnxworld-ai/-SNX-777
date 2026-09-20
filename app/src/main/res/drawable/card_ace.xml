@@ -1,0 +1,61 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="180dp"
+    android:height="240dp"
+    android:viewportWidth="180"
+    android:viewportHeight="240">
+
+    <!-- Card Background -->
+    <path
+        android:pathData="M8,0 L172,0 A8,8 0 0 1 180,8 L180,232 A8,8 0 0 1 172,240 L8,240 A8,8 0 0 1 0,232 L0,8 A8,8 0 0 1 8,0 Z"
+        android:fillColor="#FFFFFF" />
+    <path
+        android:pathData="M8,1 L172,1 A7,7 0 0 1 179,8 L179,232 A7,7 0 0 1 172,239 L8,239 A7,7 0 0 1 1,232 L1,8 A7,7 0 0 1 8,1 Z"
+        android:strokeColor="#CBD5E1"
+        android:strokeWidth="1.5" />
+
+    <!-- Letter A in Top-Left (Serif Classic Bold) -->
+    <path
+        android:pathData="M6,34 L14,6 L18,6 L26,34 L21,34 L19,26 L13,26 L11,34 Z
+                          M14,21 L18,21 L16,13 Z"
+        android:fillColor="#000000" />
+
+    <!-- Giant Spade Emblem -->
+    <!-- Gold Shadow/Border for Spade -->
+    <path
+        android:pathData="M90,36 C60,82 32,118 32,150 C32,176 52,192 78,192 C86,192 90,188 90,188 C90,188 94,192 102,192 C128,192 148,176 148,150 C148,118 120,82 90,36 Z"
+        android:fillColor="#F59E0B" />
+    <!-- Pedestal Base Gold -->
+    <path
+        android:pathData="M84,178 L72,216 L108,216 L96,178 Z"
+        android:fillColor="#F59E0B" />
+
+    <!-- Black Inner Spade -->
+    <path
+        android:pathData="M90,44 C64,86 38,120 38,148 C38,172 56,186 78,186 C86,186 90,182 90,182 C90,182 94,186 102,186 C124,186 142,172 142,148 C142,120 116,86 90,44 Z"
+        android:fillColor="#0F172A" />
+    <!-- Pedestal Base Black -->
+    <path
+        android:pathData="M86,180 L76,212 L104,212 L94,180 Z"
+        android:fillColor="#0F172A" />
+
+    <!-- Golden "ACE" Banner in Center of Spade -->
+    <path
+        android:pathData="M38,132 L142,132 L148,154 L32,154 Z"
+        android:fillColor="#F59E0B"
+        android:strokeColor="#78350F"
+        android:strokeWidth="1.5" />
+    <!-- "A C E" Text in Banner -->
+    <!-- Letter A -->
+    <path
+        android:pathData="M54,150 L58,136 L61,136 L65,150 L62,150 L61,146 L58,146 L57,150 Z M59,143 L60.5,143 L59.7,139.5 Z"
+        android:fillColor="#000000" />
+    <!-- Letter C -->
+    <path
+        android:pathData="M88,140 C86,137 81,137 79,139 C77,141 77,145 79,147 C81,149 86,149 88,146 L90,148 C87,151 80,151 77,148 C74,144 74,141 77,137 C80,134 87,134 90,138 Z"
+        android:fillColor="#000000" />
+    <!-- Letter E -->
+    <path
+        android:pathData="M104,136 L114,136 L114,139 L107,139 L107,142 L113,142 L113,144 L107,144 L107,147 L114,147 L114,150 L104,150 Z"
+        android:fillColor="#000000" />
+
+</vector>

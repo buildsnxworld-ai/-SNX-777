@@ -41,15 +41,7 @@
             </intent-filter>
         </activity>
 
-        <!-- 2) Admin Panel Activity -->
-        <activity
-            android:name=".admin.AdminMainActivity"
-            android:exported="true"
-            android:label="SNX Admin"
-            android:launchMode="singleTop"
-            android:windowSoftInputMode="adjustResize"
-            android:theme="@style/Theme.MyApplication">
-        </activity>
+
 
         <!-- 3) Signal App Activity -->
         <activity

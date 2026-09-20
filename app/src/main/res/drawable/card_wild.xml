@@ -1,0 +1,78 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="180dp"
+    android:height="240dp"
+    android:viewportWidth="180"
+    android:viewportHeight="240">
+
+    <!-- Card Background (Gold Gradient simulated) -->
+    <path
+        android:pathData="M8,0 L172,0 A8,8 0 0 1 180,8 L180,232 A8,8 0 0 1 172,240 L8,240 A8,8 0 0 1 0,232 L0,8 A8,8 0 0 1 8,0 Z"
+        android:fillColor="#FFF8E1" />
+    <path
+        android:pathData="M8,1 L172,1 A7,7 0 0 1 179,8 L179,232 A7,7 0 0 1 172,239 L8,239 A7,7 0 0 1 1,232 L1,8 A7,7 0 0 1 8,1 Z"
+        android:strokeColor="#FFB300"
+        android:strokeWidth="2.5" />
+
+    <!-- 3-Peak Royal Crown (Golden Yellow & Red Velvet interior) -->
+    <!-- Red Velvet Cap inside Crown -->
+    <path
+        android:pathData="M38,102 C38,62 142,62 142,102 Z"
+        android:fillColor="#B91C1C" />
+
+    <!-- Golden 3-Peak Crown Arches -->
+    <path
+        android:pathData="M28,110 L28,62 L60,82 L90,44 L120,82 L152,62 L152,110 Z"
+        android:fillColor="#FFC107"
+        android:strokeColor="#D97706"
+        android:strokeWidth="3" />
+
+    <!-- Golden Spheres on Crown Peaks -->
+    <path
+        android:pathData="M28,56 A6,6 0 1,1 28,56.1
+                          M90,38 A7,7 0 1,1 90,38.1
+                          M152,56 A6,6 0 1,1 152,56.1"
+        android:fillColor="#FFE082" />
+
+    <!-- Jewels on Crown Band -->
+    <path
+        android:pathData="M24,104 L156,104 L156,124 L24,124 Z"
+        android:fillColor="#FFA000"
+        android:strokeColor="#B45309"
+        android:strokeWidth="2" />
+    <!-- Ruby & Emerald Diamonds -->
+    <path
+        android:pathData="M44,114 L50,108 L56,114 L50,120 Z
+                          M90,114 L96,108 L102,114 L96,120 Z
+                          M130,114 L136,108 L142,114 L136,120 Z"
+        android:fillColor="#DC2626" />
+
+    <!-- "WILD" 3D Ribbon Banner -->
+    <path
+        android:pathData="M16,146 L164,146 L154,196 L26,196 Z"
+        android:fillColor="#DC2626"
+        android:strokeColor="#7F1D1D"
+        android:strokeWidth="2.5" />
+    <path
+        android:pathData="M16,150 L164,150 L156,170 L24,170 Z"
+        android:fillColor="#EF4444" />
+
+    <!-- Letters W I L D in White/Gold -->
+    <!-- W -->
+    <path
+        android:pathData="M38,158 L44,186 L49,168 L53,168 L58,186 L64,158 L59,158 L56,176 L52,158 L48,158 L44,176 L41,158 Z"
+        android:fillColor="#FFFFFF" />
+    <!-- I -->
+    <path
+        android:pathData="M74,158 L79,158 L79,186 L74,186 Z"
+        android:fillColor="#FFFFFF" />
+    <!-- L -->
+    <path
+        android:pathData="M92,158 L97,158 L97,181 L108,181 L108,186 L92,186 Z"
+        android:fillColor="#FFFFFF" />
+    <!-- D -->
+    <path
+        android:pathData="M120,158 L133,158 C140,158 144,164 144,172 C144,180 140,186 133,186 L120,186 Z
+                          M126,163 L126,181 L132,181 C136,181 138,177 138,172 C138,167 136,163 132,163 Z"
+        android:fillColor="#FFFFFF" />
+
+</vector>

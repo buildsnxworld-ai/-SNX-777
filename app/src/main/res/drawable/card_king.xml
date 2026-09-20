@@ -1,0 +1,188 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="180dp"
+    android:height="240dp"
+    android:viewportWidth="180"
+    android:viewportHeight="240">
+
+    <!-- Card Background (Warm Cream/Gold) -->
+    <path
+        android:pathData="M8,0 L172,0 A8,8 0 0 1 180,8 L180,232 A8,8 0 0 1 172,240 L8,240 A8,8 0 0 1 0,232 L0,8 A8,8 0 0 1 8,0 Z"
+        android:fillColor="#FFF7D6" />
+
+    <!-- Golden Border -->
+    <path
+        android:pathData="M8,1 L172,1 A7,7 0 0 1 179,8 L179,232 A7,7 0 0 1 172,239 L8,239 A7,7 0 0 1 1,232 L1,8 A7,7 0 0 1 8,1 Z"
+        android:strokeColor="#F59E0B"
+        android:strokeWidth="2.5" />
+
+    <!-- Bottom Left Corner Gem Accent -->
+    <path
+        android:pathData="M6,228 Q18,228 20,240 L6,240 Z"
+        android:fillColor="#F59E0B" />
+
+    <!-- Letter K in Top-Left (Serif Classic Bold) -->
+    <!-- Vertical stem -->
+    <path
+        android:pathData="M8,3 L15,3 L15,8 L13,8 L13,29 L15,29 L15,34 L8,34 L8,29 L10,29 L10,8 L8,8 Z"
+        android:fillColor="#000000" />
+    <!-- Upper diagonal arm of K -->
+    <path
+        android:pathData="M11,19 L21,6 L18,6 L26,6 L27,11 L23,11 L16,20 Z"
+        android:fillColor="#000000" />
+    <!-- Lower diagonal leg of K -->
+    <path
+        android:pathData="M15,18 L25,32 L27,32 L29,34 L21,34 L13,22 Z"
+        android:fillColor="#000000" />
+
+    <!-- KING PORTRAIT -->
+
+    <!-- Right Side Hair (Straight Vertical Strands) -->
+    <path
+        android:pathData="M138,88 L175,88 L175,178 L138,178 Z"
+        android:fillColor="#B45309"
+        android:strokeColor="#1E293B"
+        android:strokeWidth="2.5" />
+    <path
+        android:pathData="M148,88 L148,178 M158,88 L158,178 M167,88 L167,178"
+        android:strokeColor="#1E293B"
+        android:strokeWidth="2" />
+
+    <!-- Left Side Hair (Curling Scroll lock) -->
+    <path
+        android:pathData="M65,88 L78,88 L78,138 C58,138 46,155 60,168 C70,172 78,162 70,154 C62,150 56,130 65,88 Z"
+        android:fillColor="#B45309"
+        android:strokeColor="#1E293B"
+        android:strokeWidth="2.5" />
+
+    <!-- Crown Body (Golden-Yellow, Tall Sharp Peaks) -->
+    <path
+        android:pathData="M66,88 L66,22 L98,48 L122,18 L148,48 L175,22 L175,88 Z"
+        android:fillColor="#F59E0B"
+        android:strokeColor="#1E293B"
+        android:strokeWidth="3" />
+
+    <!-- 4 Black Diamonds on Crown (◆ ◆ ◆ ◆) -->
+    <path
+        android:pathData="M80,62 L87,55 L94,62 L87,69 Z
+                          M104,62 L111,55 L118,62 L111,69 Z
+                          M129,62 L136,55 L143,62 L136,69 Z
+                          M154,62 L161,55 L168,62 L161,69 Z"
+        android:fillColor="#1E293B" />
+
+    <!-- Crown Blue Base Band -->
+    <path
+        android:pathData="M66,74 L175,74 L175,88 L66,88 Z"
+        android:fillColor="#1D4ED8"
+        android:strokeColor="#1E293B"
+        android:strokeWidth="2.5" />
+
+    <!-- Royal Blue Robe / Shoulders -->
+    <path
+        android:pathData="M22,238 L65,178 L155,178 L178,238 Z"
+        android:fillColor="#1565C0"
+        android:strokeColor="#1E293B"
+        android:strokeWidth="3" />
+
+    <!-- White Piping Trim on Robe -->
+    <path
+        android:pathData="M35,236 L70,188 M135,188 L170,236"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="4" />
+
+    <!-- Black Diamonds on Blue Robe (◆ ◆ ◆) -->
+    <path
+        android:pathData="M48,206 L55,198 L62,206 L55,214 Z
+                          M68,222 L75,214 L82,222 L75,230 Z
+                          M148,206 L155,198 L162,206 L155,214 Z"
+        android:fillColor="#1E293B" />
+
+    <!-- Center White V-Collar -->
+    <path
+        android:pathData="M84,188 L110,214 L136,188 L136,202 L110,228 L84,202 Z"
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#1E293B"
+        android:strokeWidth="2" />
+
+    <!-- Face Area (Solid White) -->
+    <path
+        android:pathData="M76,88 L142,88 L142,142 L76,142 Z"
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#1E293B"
+        android:strokeWidth="2.5" />
+
+    <!-- Forehead Line -->
+    <path
+        android:pathData="M82,102 L136,102"
+        android:strokeColor="#1E293B"
+        android:strokeWidth="2" />
+
+    <!-- Left Eye (Heavy-lidded with fold) -->
+    <path
+        android:pathData="M86,110 L104,110 C104,116 86,116 86,110 Z"
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#1E293B"
+        android:strokeWidth="2" />
+    <path
+        android:pathData="M93,110 A2.5,2.5 0 1,1 93,115 A2.5,2.5 0 1,1 93,110"
+        android:fillColor="#1E293B" />
+    <path
+        android:pathData="M84,107 Q95,103 106,107"
+        android:strokeColor="#1E293B"
+        android:strokeWidth="2.5" />
+    <path
+        android:pathData="M86,117 Q95,121 104,117"
+        android:strokeColor="#1E293B"
+        android:strokeWidth="1.5" />
+
+    <!-- Right Eye (Heavy-lidded with fold) -->
+    <path
+        android:pathData="M114,110 L132,110 C132,116 114,116 114,110 Z"
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#1E293B"
+        android:strokeWidth="2" />
+    <path
+        android:pathData="M121,110 A2.5,2.5 0 1,1 121,115 A2.5,2.5 0 1,1 121,110"
+        android:fillColor="#1E293B" />
+    <path
+        android:pathData="M112,107 Q123,103 134,107"
+        android:strokeColor="#1E293B"
+        android:strokeWidth="2.5" />
+    <path
+        android:pathData="M114,117 Q123,121 132,117"
+        android:strokeColor="#1E293B"
+        android:strokeWidth="1.5" />
+
+    <!-- Nose Line -->
+    <path
+        android:pathData="M108,104 L104,132 L114,132"
+        android:strokeColor="#1E293B"
+        android:strokeWidth="2.5" />
+
+    <!-- Mustache (White Handlebar, Outward Curling) -->
+    <path
+        android:pathData="M82,148 C90,136 104,140 109,148 C114,140 128,136 136,148 C124,156 94,156 82,148 Z"
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#1E293B"
+        android:strokeWidth="2.5" />
+    <path
+        android:pathData="M102,152 L116,152"
+        android:strokeColor="#1E293B"
+        android:strokeWidth="2.5" />
+
+    <!-- Beard (White with 6 Vertical Comb Lines) -->
+    <path
+        android:pathData="M76,154 L142,154 L142,180 C130,192 90,192 76,180 Z"
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#1E293B"
+        android:strokeWidth="2.5" />
+    <path
+        android:pathData="M84,156 L84,182
+                          M93,156 L93,184
+                          M102,156 L102,186
+                          M116,156 L116,186
+                          M125,156 L125,184
+                          M134,156 L134,182"
+        android:strokeColor="#1E293B"
+        android:strokeWidth="2" />
+
+</vector>
