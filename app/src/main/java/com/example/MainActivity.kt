@@ -36,6 +36,7 @@ import com.example.ui.components.AppHeader
 import com.example.ui.components.AuthModal
 import com.example.ui.components.CustomerSupportModal
 import com.example.ui.components.GameServerNoticeModal
+import com.example.ui.components.GameNetworkErrorModal
 import com.example.ui.components.InsufficientBalanceModal
 import com.example.ui.components.NoInternetOverlay
 import com.example.ui.components.PromotionalAdsModal
@@ -97,6 +98,7 @@ fun SnxApp(viewModel: SnxViewModel = viewModel()) {
     val dynamicGames by viewModel.dynamicGames.collectAsStateWithLifecycle()
     val siteConfig by viewModel.siteConfig.collectAsStateWithLifecycle()
     val gameServerNotice by viewModel.gameServerNotice.collectAsStateWithLifecycle()
+    val gameNetworkErrorItem by viewModel.gameNetworkErrorItem.collectAsStateWithLifecycle()
 
     var isApkDownloadModalOpen by remember { mutableStateOf(false) }
 
@@ -347,6 +349,13 @@ fun SnxApp(viewModel: SnxViewModel = viewModel()) {
                     viewModel.dismissGameServerNotice()
                     viewModel.openSupportModal()
                 }
+            )
+
+            // Dynamic Game Network Connection Error Modal (with realistic loading transition)
+            GameNetworkErrorModal(
+                game = gameNetworkErrorItem,
+                language = language,
+                onDismiss = { viewModel.dismissGameNetworkError() }
             )
 
             // Floating Toast notification

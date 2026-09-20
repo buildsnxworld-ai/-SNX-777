@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.sp
 fun HotGamesSection(
     onOpenAviator: () -> Unit,
     onOpenSuperAce: (() -> Unit)? = null,
+    onOpenGame: ((String) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -183,7 +184,7 @@ fun HotGamesSection(
         Spacer(modifier = Modifier.height(12.dp))
 
         // 3. Grid of 6 Games (3 columns x 2 rows)
-        // Row 1: Super Ace, Wild Athena Rising, FlyX
+        // Row 1: Super Ace, Fortune Gems 3, FlyX
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -192,16 +193,16 @@ fun HotGamesSection(
                 SuperAceCard(onPlay = onOpenSuperAce)
             }
             Box(modifier = Modifier.weight(1f)) {
-                WildAthenaRisingCard()
+                FortuneGems3Card(onPlay = { onOpenGame?.invoke("slot_fortune_gems_3") })
             }
             Box(modifier = Modifier.weight(1f)) {
-                FlyXCard()
+                FlyXCard(onPlay = { onOpenGame?.invoke("flyx") })
             }
         }
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // Row 2: Aviator (FUNCTIONAL), Wild Bounty Showdown, Pirate Legends
+        // Row 2: Aviator (FUNCTIONAL), Boxing King, Mighty Sevens
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -210,17 +211,17 @@ fun HotGamesSection(
                 AviatorHotCard(onPlay = onOpenAviator)
             }
             Box(modifier = Modifier.weight(1f)) {
-                WildBountyShowdownCard()
+                BoxingKingCard(onPlay = { onOpenGame?.invoke("boxing_king") })
             }
             Box(modifier = Modifier.weight(1f)) {
-                PirateLegendsCard()
+                MightySevensCard(onPlay = { onOpenGame?.invoke("mighty_sevens") })
             }
         }
     }
 }
 
 // -------------------------------------------------------------
-// GAME 1: Super Ace (Interactive)
+// GAME 1: Super Ace (Interactive - Exact Match to IMG-20260920-WA0005.jpg)
 // -------------------------------------------------------------
 @Composable
 private fun SuperAceCard(onPlay: (() -> Unit)? = null) {
@@ -232,150 +233,456 @@ private fun SuperAceCard(onPlay: (() -> Unit)? = null) {
             .clickable(enabled = onPlay != null) { onPlay?.invoke() }
             .testTag("super_ace_hot_card"),
         shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF6B8E23)),
-        border = BorderStroke(1.dp, Color(0xFF264C35))
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF4A7228)),
+        border = BorderStroke(1.5.dp, Color(0xFF28562A))
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            // Background Artwork: Lime/Golden gradient glow
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.radialGradient(
-                            listOf(
-                                Color(0xFFD4E157),
-                                Color(0xFF827717),
-                                Color(0xFF1B382B)
-                            )
-                        )
-                    )
-            )
-
-            // Crown Illustration with bells
+            // 1. Background Artwork: Glowing Lime-Olive Gradient with Radiant Aura
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val w = size.width
                 val h = size.height
-                val crownBaseY = h * 0.58f
 
-                // Golden radial aura
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        listOf(Color(0x99FFF176), Color(0x00FFF176)),
-                        center = Offset(w * 0.5f, h * 0.42f),
-                        radius = w * 0.45f
-                    ),
-                    center = Offset(w * 0.5f, h * 0.42f),
-                    radius = w * 0.45f
+                // Radial olive/lime green base
+                drawRect(
+                    brush = Brush.verticalGradient(
+                        listOf(
+                            Color(0xFF92BB35),
+                            Color(0xFF779E26),
+                            Color(0xFF4D721A),
+                            Color(0xFF1B432C),
+                            Color(0xFF0C2B1D)
+                        )
+                    )
                 )
 
-                // Crown Path
-                val crownPath = Path().apply {
-                    moveTo(w * 0.18f, crownBaseY)
-                    // Left spike
-                    lineTo(w * 0.12f, h * 0.32f)
-                    lineTo(w * 0.32f, h * 0.42f)
-                    // Center spike
-                    lineTo(w * 0.5f, h * 0.25f)
-                    lineTo(w * 0.68f, h * 0.42f)
-                    // Right spike
-                    lineTo(w * 0.88f, h * 0.32f)
-                    lineTo(w * 0.82f, crownBaseY)
+                // Central golden glow behind crown
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        listOf(
+                            Color(0x99FFF9C4),
+                            Color(0x55E6EE9C),
+                            Color(0x00000000)
+                        ),
+                        center = Offset(w * 0.5f, h * 0.44f),
+                        radius = w * 0.55f
+                    ),
+                    center = Offset(w * 0.5f, h * 0.44f),
+                    radius = w * 0.55f
+                )
+
+                // Sparkling 4-point star lens flares
+                fun drawSparkle(center: Offset, radius: Float, color: Color = Color.White) {
+                    val p = Path().apply {
+                        moveTo(center.x, center.y - radius)
+                        quadraticTo(center.x, center.y, center.x + radius, center.y)
+                        quadraticTo(center.x, center.y, center.x, center.y + radius)
+                        quadraticTo(center.x, center.y, center.x - radius, center.y)
+                        quadraticTo(center.x, center.y, center.x, center.y - radius)
+                        close()
+                    }
+                    drawPath(p, color)
+                    drawCircle(color = color.copy(alpha = 0.85f), radius = radius * 0.35f, center = center)
+                }
+
+                // Sparkles matching screenshot positions
+                drawSparkle(Offset(w * 0.28f, h * 0.16f), 9f, Color(0xFFFFFDE7))
+                drawSparkle(Offset(w * 0.42f, h * 0.10f), 6f, Color(0xFFFFF9C4))
+                drawSparkle(Offset(w * 0.62f, h * 0.20f), 8f, Color(0xFFFFFDE7))
+                drawSparkle(Offset(w * 0.16f, h * 0.68f), 12f, Color(0xFFFFFFFF)) // Bright flare near base left
+                drawSparkle(Offset(w * 0.84f, h * 0.60f), 9f, Color(0xFFFFFFFF)) // Flare near base right
+
+                // -------------------------------------------------------------
+                // 2. 3D ROYAL JESTER CROWN (IMG-20260920-WA0005.jpg)
+                // -------------------------------------------------------------
+                val cx = w * 0.50f
+                val baseBandTopY = h * 0.63f
+                val baseBandBottomY = h * 0.74f
+                val baseHalfW = w * 0.30f
+
+                // Key Peak Coordinates
+                val centerTip = Offset(cx, h * 0.21f)
+                val leftTip = Offset(w * 0.13f, h * 0.32f)
+                val rightTip = Offset(w * 0.87f, h * 0.32f)
+
+                // Valleys between horns
+                val leftValley = Offset(cx - w * 0.17f, h * 0.44f)
+                val rightValley = Offset(cx + w * 0.17f, h * 0.44f)
+
+                // Base connection points
+                val baseLeft = Offset(cx - baseHalfW, baseBandTopY)
+                val baseRight = Offset(cx + baseHalfW, baseBandTopY)
+                val baseCenterTop = Offset(cx, baseBandTopY + 4f)
+
+                // A. HEAVY 3D GOLD CASING OUTLINE BEHIND CROWN
+                val casingPath = Path().apply {
+                    moveTo(baseLeft.x, baseLeft.y)
+                    // Left outer curve
+                    cubicTo(w * 0.08f, h * 0.48f, w * 0.07f, h * 0.36f, leftTip.x, leftTip.y)
+                    // Left inner curve to valley
+                    quadraticTo(w * 0.22f, h * 0.37f, leftValley.x, leftValley.y)
+                    // Valley to center tip
+                    quadraticTo(cx - w * 0.10f, h * 0.30f, centerTip.x, centerTip.y)
+                    // Center tip to right valley
+                    quadraticTo(cx + w * 0.10f, h * 0.30f, rightValley.x, rightValley.y)
+                    // Right valley to right tip
+                    quadraticTo(w * 0.78f, h * 0.37f, rightTip.x, rightTip.y)
+                    // Right outer curve to base
+                    cubicTo(w * 0.92f, h * 0.36f, w * 0.92f, h * 0.48f, baseRight.x, baseRight.y)
+                    // Curve along base band
+                    quadraticTo(cx, baseBandTopY + 8f, baseLeft.x, baseLeft.y)
                     close()
                 }
 
-                // Crown Red Velvet Base Fill
+                // Dark drop shadow behind crown
                 drawPath(
-                    path = crownPath,
+                    path = casingPath,
+                    color = Color(0x66071E11)
+                )
+
+                // Thick golden rim casing
+                drawPath(
+                    path = casingPath,
                     brush = Brush.verticalGradient(
-                        listOf(Color(0xFFE53935), Color(0xFFB71C1C))
-                    )
-                )
-
-                // Crown Gold Borders
-                drawPath(
-                    path = crownPath,
-                    brush = Brush.linearGradient(
-                        listOf(Color(0xFFFFD700), Color(0xFFFFA000))
+                        listOf(Color(0xFFFFEE55), Color(0xFFF59E0B), Color(0xFFB45309), Color(0xFF78350F))
                     ),
-                    style = Stroke(width = 4f)
+                    style = Stroke(width = 10f)
                 )
 
-                // Gold Bells on peaks
-                drawCircle(Color(0xFFFFD54F), radius = 6f, center = Offset(w * 0.12f, h * 0.32f))
-                drawCircle(Color(0xFFFFD54F), radius = 8f, center = Offset(w * 0.5f, h * 0.25f))
-                drawCircle(Color(0xFFFFD54F), radius = 6f, center = Offset(w * 0.88f, h * 0.32f))
-
-                // Bottom Gold Band
-                drawRoundRect(
-                    brush = Brush.linearGradient(listOf(Color(0xFFFFD700), Color(0xFFFF8F00))),
-                    topLeft = Offset(w * 0.15f, crownBaseY - 4f),
-                    size = androidx.compose.ui.geometry.Size(w * 0.7f, 14f),
-                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f, 4f)
+                // Specular gold line on top of casing
+                drawPath(
+                    path = casingPath,
+                    brush = Brush.verticalGradient(
+                        listOf(Color(0xFFFFFDE7), Color(0xFFFFEE55), Color(0xFFD97706))
+                    ),
+                    style = Stroke(width = 3.5f)
                 )
-            }
 
-            // Top Provider & Favorite Icons
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(6.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
-            ) {
-                // Top Right: JILI Badge + Heart
-                Spacer(modifier = Modifier.weight(1f))
-                Surface(
-                    shape = RoundedCornerShape(4.dp),
-                    color = Color(0xB33E2723),
-                    modifier = Modifier.padding(end = 4.dp)
-                ) {
-                    Text(
-                        text = "JILI",
-                        color = Color(0xFFFFD700),
-                        fontSize = 7.sp,
-                        fontWeight = FontWeight.Black,
-                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                // B. ALTERNATING 3D FACETS (RED & GOLDEN YELLOW)
+
+                // Facet 1: Left Horn Outer (Brilliant Gold)
+                val f1 = Path().apply {
+                    moveTo(baseLeft.x, baseLeft.y)
+                    cubicTo(w * 0.08f, h * 0.48f, w * 0.07f, h * 0.36f, leftTip.x, leftTip.y)
+                    quadraticTo(w * 0.18f, h * 0.46f, baseLeft.x + 10f, baseLeft.y)
+                    close()
+                }
+                drawPath(
+                    f1,
+                    brush = Brush.linearGradient(
+                        listOf(Color(0xFFFFF9C4), Color(0xFFFFD54F), Color(0xFFF59E0B), Color(0xFFB45309)),
+                        start = leftTip,
+                        end = baseLeft
+                    )
+                )
+
+                // Facet 2: Left Horn Inner (Crimson Red)
+                val f2 = Path().apply {
+                    moveTo(leftTip.x, leftTip.y)
+                    quadraticTo(w * 0.22f, h * 0.37f, leftValley.x, leftValley.y)
+                    quadraticTo(w * 0.26f, h * 0.54f, baseLeft.x + 10f, baseLeft.y)
+                    quadraticTo(w * 0.18f, h * 0.46f, leftTip.x, leftTip.y)
+                    close()
+                }
+                drawPath(
+                    f2,
+                    brush = Brush.linearGradient(
+                        listOf(Color(0xFFEF4444), Color(0xFFDC2626), Color(0xFF991B1B), Color(0xFF7F1D1D)),
+                        start = leftTip,
+                        end = leftValley
+                    )
+                )
+
+                // Facet 3: Center Horn Left Half (Crimson Red)
+                val f3 = Path().apply {
+                    moveTo(centerTip.x, centerTip.y)
+                    quadraticTo(cx - w * 0.10f, h * 0.30f, leftValley.x, leftValley.y)
+                    quadraticTo(cx - w * 0.08f, h * 0.54f, baseCenterTop.x - 2f, baseCenterTop.y)
+                    lineTo(centerTip.x, centerTip.y)
+                    close()
+                }
+                drawPath(
+                    f3,
+                    brush = Brush.linearGradient(
+                        listOf(Color(0xFFF87171), Color(0xFFDC2626), Color(0xFF991B1B)),
+                        start = centerTip,
+                        end = leftValley
+                    )
+                )
+
+                // Facet 4: Center Horn Right Half (Brilliant Gold)
+                val f4 = Path().apply {
+                    moveTo(centerTip.x, centerTip.y)
+                    lineTo(baseCenterTop.x - 2f, baseCenterTop.y)
+                    quadraticTo(cx + w * 0.08f, h * 0.54f, rightValley.x, rightValley.y)
+                    quadraticTo(cx + w * 0.10f, h * 0.30f, centerTip.x, centerTip.y)
+                    close()
+                }
+                drawPath(
+                    f4,
+                    brush = Brush.linearGradient(
+                        listOf(Color(0xFFFFF9C4), Color(0xFFFFEE55), Color(0xFFF59E0B)),
+                        start = centerTip,
+                        end = rightValley
+                    )
+                )
+
+                // Facet 5: Right Horn Inner (Crimson Red)
+                val f5 = Path().apply {
+                    moveTo(rightValley.x, rightValley.y)
+                    quadraticTo(w * 0.78f, h * 0.37f, rightTip.x, rightTip.y)
+                    quadraticTo(w * 0.82f, h * 0.46f, baseRight.x - 10f, baseRight.y)
+                    quadraticTo(w * 0.74f, h * 0.54f, rightValley.x, rightValley.y)
+                    close()
+                }
+                drawPath(
+                    f5,
+                    brush = Brush.linearGradient(
+                        listOf(Color(0xFFEF4444), Color(0xFFDC2626), Color(0xFF991B1B), Color(0xFF7F1D1D)),
+                        start = rightTip,
+                        end = rightValley
+                    )
+                )
+
+                // Facet 6: Right Horn Outer (Brilliant Gold)
+                val f6 = Path().apply {
+                    moveTo(rightTip.x, rightTip.y)
+                    cubicTo(w * 0.92f, h * 0.36f, w * 0.92f, h * 0.48f, baseRight.x, baseRight.y)
+                    quadraticTo(w * 0.82f, h * 0.46f, rightTip.x, rightTip.y)
+                    close()
+                }
+                drawPath(
+                    f6,
+                    brush = Brush.linearGradient(
+                        listOf(Color(0xFFFFF9C4), Color(0xFFFFD54F), Color(0xFFF59E0B), Color(0xFFB45309)),
+                        start = rightTip,
+                        end = baseRight
+                    )
+                )
+
+                // Center Ridge Specular Highlight Line
+                drawLine(
+                    color = Color(0xFFFFFDE7),
+                    start = centerTip,
+                    end = baseCenterTop,
+                    strokeWidth = 2.5f
+                )
+
+                // C. BASE BAND: CURVED 3D POLISHED GOLDEN CYLINDER
+                val baseBandPath = Path().apply {
+                    moveTo(baseLeft.x - 2f, baseBandTopY)
+                    quadraticTo(cx, baseBandTopY + 7f, baseRight.x + 2f, baseBandTopY)
+                    lineTo(baseRight.x, baseBandBottomY)
+                    quadraticTo(cx, baseBandBottomY + 7f, baseLeft.x - 4f, baseBandBottomY)
+                    close()
+                }
+
+                // Base band drop shadow
+                drawPath(baseBandPath, color = Color(0x66000000))
+
+                // Base band gold metallic surface
+                drawPath(
+                    path = baseBandPath,
+                    brush = Brush.horizontalGradient(
+                        listOf(
+                            Color(0xFFB45309),
+                            Color(0xFFFFD54F),
+                            Color(0xFFFFFDE7),
+                            Color(0xFFFFD54F),
+                            Color(0xFF92400E)
+                        )
+                    )
+                )
+
+                // Base band bevel lips
+                drawPath(
+                    path = baseBandPath,
+                    brush = Brush.verticalGradient(
+                        listOf(Color(0xFFFFFDE7), Color(0x00000000), Color(0xFF78350F))
+                    ),
+                    style = Stroke(width = 2.5f)
+                )
+
+                // D. 3D GOLDEN JINGLE BELLS (AT ALL 3 PEAKS)
+                fun drawJingleBell(center: Offset, radius: Float) {
+                    // Drop shadow
+                    drawCircle(
+                        color = Color(0x55000000),
+                        radius = radius + 1.5f,
+                        center = Offset(center.x + 1.5f, center.y + 2f)
+                    )
+                    // Outer gold rim
+                    drawCircle(
+                        brush = Brush.radialGradient(
+                            listOf(Color(0xFFFFFDE7), Color(0xFFFFD54F), Color(0xFFD97706), Color(0xFF78350F)),
+                            center = Offset(center.x - radius * 0.3f, center.y - radius * 0.35f),
+                            radius = radius
+                        ),
+                        radius = radius,
+                        center = center
+                    )
+                    // Metallic gold stroke
+                    drawCircle(
+                        color = Color(0xFF78350F),
+                        radius = radius,
+                        center = center,
+                        style = Stroke(width = 1.5f)
+                    )
+                    // Bell slit opening: vertical dark line with center dot
+                    drawLine(
+                        color = Color(0xFF451A03),
+                        start = Offset(center.x, center.y - radius * 0.1f),
+                        end = Offset(center.x, center.y + radius * 0.65f),
+                        strokeWidth = 2.5f
+                    )
+                    drawCircle(
+                        color = Color(0xFF451A03),
+                        radius = radius * 0.22f,
+                        center = Offset(center.x, center.y + radius * 0.1f)
+                    )
+                    // Specular highlight gleam
+                    drawCircle(
+                        color = Color.White.copy(alpha = 0.85f),
+                        radius = radius * 0.25f,
+                        center = Offset(center.x - radius * 0.35f, center.y - radius * 0.35f)
                     )
                 }
 
-                Box(
+                // Left Bell
+                drawJingleBell(leftTip, w * 0.08f)
+                // Center Bell (Largest)
+                drawJingleBell(centerTip, w * 0.09f)
+                // Right Bell
+                drawJingleBell(rightTip, w * 0.08f)
+            }
+
+            // -------------------------------------------------------------
+            // 3. TOP RIGHT: GOLDEN JL BADGE WITH WHITE HEART
+            // -------------------------------------------------------------
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = 4.dp, end = 6.dp)
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(topStart = 4.dp, bottomStart = 8.dp, bottomEnd = 6.dp),
+                    color = Color.Transparent,
+                    border = BorderStroke(1.dp, Color(0xFFFFE082)),
                     modifier = Modifier
-                        .size(16.dp)
-                        .clip(CircleShape)
-                        .background(Color(0x55000000)),
-                    contentAlignment = Alignment.Center
+                        .size(width = 38.dp, height = 24.dp)
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(Color(0xFFFFD54F), Color(0xFFD97706), Color(0xFF78350F))
+                            ),
+                            shape = RoundedCornerShape(topStart = 4.dp, bottomStart = 8.dp, bottomEnd = 6.dp)
+                        )
                 ) {
-                    Text(text = "🤍", fontSize = 9.sp)
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        // Embossed JL
+                        Text(
+                            text = "JL",
+                            color = Color(0xFFFFF9C4),
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Black,
+                            style = androidx.compose.ui.text.TextStyle(
+                                shadow = androidx.compose.ui.graphics.Shadow(
+                                    color = Color(0xFF5C2C06),
+                                    offset = Offset(1f, 1f),
+                                    blurRadius = 2f
+                                )
+                            )
+                        )
+
+                        // Pure white heart superimposed
+                        Text(
+                            text = "🤍",
+                            color = Color.White,
+                            fontSize = 11.sp,
+                            modifier = Modifier.offset(y = 1.dp)
+                        )
+                    }
                 }
             }
 
-            // Bottom Labels: Super Ace + JILI
-            Column(
+            // -------------------------------------------------------------
+            // 4. BOTTOM TITLE: 3D "SuperAce" + "JILI" OVERLAY
+            // -------------------------------------------------------------
+            Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .background(
-                        Brush.verticalGradient(
-                            listOf(Color.Transparent, Color(0xCC051810), Color(0xF0030E09))
+                    .padding(bottom = 6.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                // Layer A: "SuperAce" 3D Block Text
+                Box(contentAlignment = Alignment.Center) {
+                    // Dark 3D Drop Shadow / Extrusion
+                    Text(
+                        text = "SuperAce",
+                        color = Color(0xFF0F1B12),
+                        fontSize = 19.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = (-0.5).sp,
+                        modifier = Modifier.offset(y = 2.dp)
+                    )
+                    // Dark stroke outline
+                    Text(
+                        text = "SuperAce",
+                        color = Color(0xFF192A1A),
+                        fontSize = 19.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = (-0.5).sp,
+                        modifier = Modifier.offset(y = 1.dp)
+                    )
+                    // Front Olive-Silver Metallic Face
+                    Text(
+                        text = "SuperAce",
+                        color = Color(0xFFB5C9A4),
+                        fontSize = 19.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = (-0.5).sp,
+                        style = androidx.compose.ui.text.TextStyle(
+                            shadow = androidx.compose.ui.graphics.Shadow(
+                                color = Color(0xFF1B301D),
+                                offset = Offset(0f, 1.5f),
+                                blurRadius = 1.5f
+                            )
                         )
                     )
-                    .padding(horizontal = 4.dp, vertical = 5.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "Super Ace",
-                    color = Color(0xFFE8F5E9),
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Black,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = "JILI",
-                    color = Color(0xFFC8E6C9),
-                    fontSize = 8.sp,
-                    fontWeight = FontWeight.Bold
-                )
+                }
+
+                // Layer B: Embossed Chrome White "JILI" Overlay (Positioned across the bottom of SuperAce)
+                Box(
+                    modifier = Modifier.offset(y = 8.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    // Dark shadow for JILI
+                    Text(
+                        text = "JILI",
+                        color = Color(0xCC000000),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 1.sp,
+                        modifier = Modifier.offset(y = 1.dp)
+                    )
+                    // Gleaming White Chrome JILI
+                    Text(
+                        text = "JILI",
+                        color = Color.White,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 1.sp,
+                        style = androidx.compose.ui.text.TextStyle(
+                            shadow = androidx.compose.ui.graphics.Shadow(
+                                color = Color(0xFF64748B),
+                                offset = Offset(0.5f, 0.5f),
+                                blurRadius = 1f
+                            )
+                        )
+                    )
+                }
             }
         }
     }
@@ -385,11 +692,12 @@ private fun SuperAceCard(onPlay: (() -> Unit)? = null) {
 // GAME 2: Wild Athena Rising (Static)
 // -------------------------------------------------------------
 @Composable
-private fun WildAthenaRisingCard() {
+private fun WildAthenaRisingCard(onPlay: (() -> Unit)? = null) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(154.dp),
+            .height(154.dp)
+            .clickable(enabled = onPlay != null) { onPlay?.invoke() },
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFF1A2744)),
         border = BorderStroke(1.dp, Color(0xFF1E3A5F))
@@ -505,11 +813,12 @@ private fun WildAthenaRisingCard() {
 // GAME 3: FlyX (Static)
 // -------------------------------------------------------------
 @Composable
-private fun FlyXCard() {
+private fun FlyXCard(onPlay: (() -> Unit)? = null) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(154.dp),
+            .height(154.dp)
+            .clickable(enabled = onPlay != null) { onPlay?.invoke() },
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFF1E202B)),
         border = BorderStroke(1.dp, Color(0xFF2E3447))
@@ -611,7 +920,7 @@ private fun FlyXCard() {
 }
 
 // -------------------------------------------------------------
-// GAME 4: Aviator (FUNCTIONAL - Launches real Aviator game!)
+// GAME 4: Aviator (FUNCTIONAL - Exact Match to IMG-20260920-WA0006.jpg)
 // -------------------------------------------------------------
 @Composable
 private fun AviatorHotCard(
@@ -621,128 +930,349 @@ private fun AviatorHotCard(
         modifier = Modifier
             .fillMaxWidth()
             .height(154.dp)
-            .shadow(8.dp, RoundedCornerShape(14.dp), ambientColor = Color(0xFFFF1744), spotColor = Color(0xFFFF1744))
+            .clip(RoundedCornerShape(14.dp))
             .clickable(onClick = onPlay)
             .testTag("hot_game_aviator"),
         shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E0407)),
-        // Vibrant Glowing Red Border as seen in the screenshot!
-        border = BorderStroke(2.dp, Color(0xFFFF1A38))
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF0B2421)),
+        // Dark Teal-Green outer card border (matching user's green theme request)
+        border = BorderStroke(1.5.dp, Color(0xFF103D36))
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            // Crimson Vignette Background
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.radialGradient(
-                            listOf(
-                                Color(0xFF38080E),
-                                Color(0xFF1E0407),
-                                Color(0xFF0F0103)
-                            )
-                        )
-                    )
-            )
-
-            // Propeller Airplane Illustration
+            // -------------------------------------------------------------
+            // 1. CANVAS: Vintage Aviation Sky with Green Gradient, Rays & Red Plane
+            // -------------------------------------------------------------
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val w = size.width
                 val h = size.height
+                val cx = w * 0.5f
+
+                // Base Background: Charcoal/Slate-Grey top fading into Deep Dark Teal-Green bottom
+                drawRect(
+                    brush = Brush.verticalGradient(
+                        listOf(
+                            Color(0xFF282B2D),
+                            Color(0xFF1C2022),
+                            Color(0xFF14191A),
+                            Color(0xFF0E2824),
+                            Color(0xFF071F1C)
+                        )
+                    )
+                )
+
+                // Vintage Altitude / Compass Rose at Top Center
+                val compassCenter = Offset(cx, h * 0.04f)
+                val compassR = w * 0.26f
+                drawCircle(
+                    color = Color(0xFF4A5568).copy(alpha = 0.25f),
+                    radius = compassR,
+                    center = compassCenter,
+                    style = Stroke(width = 1.5f)
+                )
+                drawCircle(
+                    color = Color(0xFF4A5568).copy(alpha = 0.15f),
+                    radius = compassR * 0.7f,
+                    center = compassCenter,
+                    style = Stroke(width = 1f)
+                )
+                // Compass tick marks
+                for (i in 0 until 16) {
+                    val angle = (i * 22.5) * (Math.PI / 180f)
+                    val r1 = compassR * 0.85f
+                    val r2 = compassR
+                    val x1 = compassCenter.x + (r1 * Math.cos(angle)).toFloat()
+                    val y1 = compassCenter.y + (r1 * Math.sin(angle)).toFloat()
+                    val x2 = compassCenter.x + (r2 * Math.cos(angle)).toFloat()
+                    val y2 = compassCenter.y + (r2 * Math.sin(angle)).toFloat()
+                    if (y2 > 0f) {
+                        drawLine(
+                            color = Color(0xFF64748B).copy(alpha = 0.25f),
+                            start = Offset(x1, y1),
+                            end = Offset(x2, y2),
+                            strokeWidth = 1.5f
+                        )
+                    }
+                }
+
+                // Radiating Sunburst Rays centered behind the plane
+                val rayCenter = Offset(w * 0.52f, h * 0.36f)
+                val numRays = 18
+                for (i in 0 until numRays) {
+                    val angle = (i * (360f / numRays)) * (Math.PI / 180f)
+                    val rayLength = w * 0.9f
+                    val x = rayCenter.x + (rayLength * Math.cos(angle)).toFloat()
+                    val y = rayCenter.y + (rayLength * Math.sin(angle)).toFloat()
+                    drawLine(
+                        color = Color.White.copy(alpha = 0.035f),
+                        start = rayCenter,
+                        end = Offset(x, y),
+                        strokeWidth = 14f
+                    )
+                }
 
                 // Red Aura Behind Plane
                 drawCircle(
                     brush = Brush.radialGradient(
-                        listOf(Color(0x88FF1744), Color(0x00FF1744)),
-                        center = Offset(w * 0.5f, h * 0.42f),
+                        listOf(Color(0x66E50914), Color(0x00E50914)),
+                        center = rayCenter,
                         radius = w * 0.45f
                     ),
-                    center = Offset(w * 0.5f, h * 0.42f),
+                    center = rayCenter,
                     radius = w * 0.45f
                 )
 
-                // Aerodynamic Propeller Plane Path
-                val planeBody = Path().apply {
-                    moveTo(w * 0.78f, h * 0.32f) // Nose propeller point
-                    lineTo(w * 0.22f, h * 0.50f) // Tail end
-                    lineTo(w * 0.20f, h * 0.40f) // Tail fin tip
-                    lineTo(w * 0.27f, h * 0.48f)
+                // -------------------------------------------------------------
+                // 2. INSET RED WEATHERED FRAME (IMG-20260920-WA0006.jpg)
+                // -------------------------------------------------------------
+                val inset = 12f
+                val framePath = Path().apply {
+                    moveTo(inset + 6f, inset)
+                    lineTo(w - inset - 6f, inset)
+                    lineTo(w - inset, inset + 6f)
+                    lineTo(w - inset, h - inset - 6f)
+                    lineTo(w - inset - 6f, h - inset)
+                    lineTo(inset + 6f, h - inset)
+                    lineTo(inset, h - inset - 6f)
+                    lineTo(inset, inset + 6f)
+                    close()
+                }
+                drawPath(
+                    path = framePath,
+                    color = Color(0xFFE50914).copy(alpha = 0.85f),
+                    style = Stroke(width = 2f)
+                )
+
+                // -------------------------------------------------------------
+                // 3. ICONIC RED AVIATOR PROPELLER PLANE
+                // -------------------------------------------------------------
+                // The plane climbs at ~30 degrees towards top-right
+                val planeNose = Offset(w * 0.72f, h * 0.28f)
+                val planeTail = Offset(w * 0.24f, h * 0.46f)
+                val planeCenter = Offset(w * 0.50f, h * 0.35f)
+
+                // Main Aerodynamic Fuselage
+                val fuselage = Path().apply {
+                    // Start at propeller spinner hub
+                    moveTo(planeNose.x, planeNose.y)
+                    // Top fuselage to cockpit
+                    quadraticTo(w * 0.62f, h * 0.29f, w * 0.54f, h * 0.31f)
+                    // Cockpit bubble
+                    quadraticTo(w * 0.46f, h * 0.33f, w * 0.40f, h * 0.36f)
+                    // Spine to tail fin
+                    lineTo(w * 0.26f, h * 0.44f)
+                    // Rudder fin pointing up
+                    lineTo(w * 0.20f, h * 0.40f)
+                    // Rudder back
+                    lineTo(w * 0.18f, h * 0.44f)
+                    // Lower tail
+                    lineTo(w * 0.25f, h * 0.47f)
+                    // Bottom belly forward
+                    quadraticTo(w * 0.42f, h * 0.44f, w * 0.58f, h * 0.38f)
+                    // Nose chin
+                    lineTo(w * 0.70f, h * 0.31f)
                     close()
                 }
 
+                // Fuselage drop shadow
                 drawPath(
-                    path = planeBody,
+                    path = fuselage,
+                    color = Color(0x66000000)
+                )
+
+                // Fuselage vibrant neon red fill
+                drawPath(
+                    path = fuselage,
                     brush = Brush.linearGradient(
-                        listOf(Color(0xFFFF5252), Color(0xFFD50000))
+                        listOf(
+                            Color(0xFFFF3355),
+                            Color(0xFFE50914),
+                            Color(0xFFB3000B)
+                        ),
+                        start = planeNose,
+                        end = planeTail
                     )
                 )
 
-                // Wings
-                drawLine(
-                    color = Color(0xFFFF1744),
-                    start = Offset(w * 0.45f, h * 0.30f),
-                    end = Offset(w * 0.60f, h * 0.55f),
-                    strokeWidth = 6f
+                // Neon red fuselage outer highlight stroke
+                drawPath(
+                    path = fuselage,
+                    color = Color(0xFFFF5E7E),
+                    style = Stroke(width = 1.5f)
                 )
 
-                // Front Propeller blur
+                // Large Aerodynamic Swept Wings
+                val wingPath = Path().apply {
+                    moveTo(w * 0.60f, h * 0.34f) // Wing root top
+                    lineTo(w * 0.34f, h * 0.35f) // Wing tip left
+                    lineTo(w * 0.38f, h * 0.40f) // Wing trailing tip
+                    lineTo(w * 0.52f, h * 0.38f) // Wing root bottom
+                    close()
+                }
+                drawPath(
+                    path = wingPath,
+                    brush = Brush.linearGradient(
+                        listOf(Color(0xFFFF2247), Color(0xFFCC000E)),
+                        start = Offset(w * 0.60f, h * 0.34f),
+                        end = Offset(w * 0.34f, h * 0.35f)
+                    )
+                )
+                drawPath(
+                    path = wingPath,
+                    color = Color(0xFFFF5E7E),
+                    style = Stroke(width = 1.5f)
+                )
+
+                // Lower small landing gear / wing detail
                 drawLine(
-                    color = Color(0xFFFF8A80),
-                    start = Offset(w * 0.78f, h * 0.25f),
-                    end = Offset(w * 0.78f, h * 0.39f),
-                    strokeWidth = 3f
+                    color = Color(0xFFE50914),
+                    start = Offset(w * 0.48f, h * 0.40f),
+                    end = Offset(w * 0.44f, h * 0.44f),
+                    strokeWidth = 2.5f
+                )
+
+                // Two Spinning Propeller Blades
+                // Blade 1: Upper blade sweeping up-left
+                val propBlade1 = Path().apply {
+                    moveTo(planeNose.x, planeNose.y)
+                    quadraticTo(w * 0.70f, h * 0.23f, w * 0.68f, h * 0.19f)
+                    quadraticTo(w * 0.72f, h * 0.22f, planeNose.x, planeNose.y)
+                    close()
+                }
+                drawPath(
+                    path = propBlade1,
+                    brush = Brush.verticalGradient(
+                        listOf(Color(0xFFFF5E7E), Color(0xFFE50914))
+                    )
+                )
+                drawPath(path = propBlade1, color = Color(0xFFFF8A9E), style = Stroke(width = 1.2f))
+
+                // Blade 2: Lower blade sweeping down-right
+                val propBlade2 = Path().apply {
+                    moveTo(planeNose.x, planeNose.y)
+                    quadraticTo(w * 0.77f, h * 0.35f, w * 0.81f, h * 0.40f)
+                    quadraticTo(w * 0.75f, h * 0.35f, planeNose.x, planeNose.y)
+                    close()
+                }
+                drawPath(
+                    path = propBlade2,
+                    brush = Brush.verticalGradient(
+                        listOf(Color(0xFFE50914), Color(0xFFFF2247))
+                    )
+                )
+                drawPath(path = propBlade2, color = Color(0xFFFF8A9E), style = Stroke(width = 1.2f))
+
+                // Propeller Spinner Center Cone
+                drawCircle(
+                    color = Color(0xFFFF5E7E),
+                    radius = 4.5f,
+                    center = planeNose
+                )
+                drawCircle(
+                    color = Color(0xFF8B0000),
+                    radius = 4.5f,
+                    center = planeNose,
+                    style = Stroke(width = 1.5f)
                 )
             }
 
-            // Top Heart Icon
+            // -------------------------------------------------------------
+            // 4. TOP RIGHT: TRANSLUCENT CIRCLE WITH WHITE HEART
+            // -------------------------------------------------------------
             Box(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(6.dp)
-                    .size(16.dp)
+                    .padding(top = 8.dp, end = 8.dp)
+                    .size(24.dp)
                     .clip(CircleShape)
-                    .background(Color(0x66000000)),
+                    .background(Color(0x77000000)),
                 contentAlignment = Alignment.Center
             ) {
-                Text(text = "🤍", fontSize = 9.sp)
+                Text(
+                    text = "🤍",
+                    color = Color.White,
+                    fontSize = 13.sp,
+                    modifier = Modifier.offset(y = (-0.5).dp)
+                )
             }
 
-            // Bottom Labels: Aviator (Red Script) + SPRIBE (White)
+            // -------------------------------------------------------------
+            // 5. BOTTOM SECTION: "Aviator" Red Script + SPRIBE Underlined
+            // -------------------------------------------------------------
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .background(
-                        Brush.verticalGradient(
-                            listOf(Color.Transparent, Color(0xCC180204), Color(0xF2100102))
-                        )
-                    )
-                    .padding(horizontal = 4.dp, vertical = 5.dp),
+                    .padding(bottom = 8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                // "Aviator" Iconic Neon Red Script
                 Text(
                     text = "Aviator",
-                    color = Color(0xFFFF1A38),
-                    fontSize = 13.sp,
+                    color = Color(0xFFE50914),
+                    fontSize = 25.sp,
                     fontWeight = FontWeight.Black,
                     fontStyle = FontStyle.Italic,
-                    fontFamily = FontFamily.SansSerif
+                    letterSpacing = (-0.5).sp,
+                    style = androidx.compose.ui.text.TextStyle(
+                        shadow = androidx.compose.ui.graphics.Shadow(
+                            color = Color(0xCCFF1744),
+                            offset = Offset(0f, 0f),
+                            blurRadius = 10f
+                        )
+                    )
                 )
-                // Red underline accent
-                Box(
-                    modifier = Modifier
-                        .width(36.dp)
-                        .height(1.5.dp)
-                        .background(Color(0xFFFF1A38))
-                )
+
                 Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = "SPRIBE",
-                    color = Color.White,
-                    fontSize = 8.5.sp,
-                    fontWeight = FontWeight.Black,
-                    letterSpacing = 1.sp
-                )
+
+                // Two Red Speed Accent Bars (IMG-20260920-WA0006.jpg)
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .width(36.dp)
+                            .height(2.5.dp)
+                            .clip(RoundedCornerShape(1.dp))
+                            .background(Color(0xFFE50914))
+                    )
+                    Box(
+                        modifier = Modifier
+                            .width(22.dp)
+                            .height(2.dp)
+                            .clip(RoundedCornerShape(1.dp))
+                            .background(Color(0xFFE50914))
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                // "SPRIBE" Crisp Bold White Typography with Sharp Underline
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "SPRIBE",
+                        color = Color.White,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 2.sp,
+                        style = androidx.compose.ui.text.TextStyle(
+                            shadow = androidx.compose.ui.graphics.Shadow(
+                                color = Color.Black,
+                                offset = Offset(1f, 1f),
+                                blurRadius = 2f
+                            )
+                        )
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Box(
+                        modifier = Modifier
+                            .width(62.dp)
+                            .height(2.dp)
+                            .background(Color.White)
+                    )
+                }
             }
         }
     }
@@ -752,11 +1282,12 @@ private fun AviatorHotCard(
 // GAME 5: Wild Bounty Showdown (Static)
 // -------------------------------------------------------------
 @Composable
-private fun WildBountyShowdownCard() {
+private fun WildBountyShowdownCard(onPlay: (() -> Unit)? = null) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(154.dp),
+            .height(154.dp)
+            .clickable(enabled = onPlay != null) { onPlay?.invoke() },
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFF2D1808)),
         border = BorderStroke(1.dp, Color(0xFF4E2A0E))
@@ -860,11 +1391,12 @@ private fun WildBountyShowdownCard() {
 // GAME 6: Pirate Legends (Static, with '$ BUY' badge)
 // -------------------------------------------------------------
 @Composable
-private fun PirateLegendsCard() {
+private fun PirateLegendsCard(onPlay: (() -> Unit)? = null) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(154.dp),
+            .height(154.dp)
+            .clickable(enabled = onPlay != null) { onPlay?.invoke() },
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFF2E1018)),
         border = BorderStroke(1.dp, Color(0xFF4A1828))

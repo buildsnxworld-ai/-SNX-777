@@ -36,9 +36,13 @@ enum class GameCategory(val bn: String, val en: String, val icon: String) {
 
 enum class GameServerStatus(val code: String, val bn: String, val en: String, val colorHex: Long) {
     ACTIVE("ACTIVE", "সক্রিয়", "Active", 0xFF00E676),
-    SERVER_UPDATE("SERVER_UPDATE", "সার্ভার আপডেট", "Server Update", 0xFFFF9800),
     SERVER_ERROR("SERVER_ERROR", "সার্ভার এরর", "Server Error", 0xFFEF4444),
-    OFFLINE("OFFLINE", "নিষ্ক্রিয়/বন্ধ", "Offline", 0xFF64748B);
+    SERVER_MAINTENANCE("SERVER_MAINTENANCE", "সার্ভার মেইনটেন্যান্স", "Server Maintenance", 0xFFF59E0B),
+    SERVER_UPGRADE("SERVER_UPGRADE", "সার্ভার আপগ্রেড", "Server Upgrade", 0xFF3B82F6),
+    SERVER_OFF("SERVER_OFF", "সার্ভার অফ", "Server Offline", 0xFF64748B),
+    SERVER_UPDATE("SERVER_UPDATE", "সার্ভার আপডেট", "Server Update", 0xFFFF9800),
+    OFFLINE("OFFLINE", "নিষ্ক্রিয়/বন্ধ", "Offline", 0xFF64748B),
+    NETWORK_ERROR("NETWORK_ERROR", "নেটওয়ার্ক কানেকশন সমস্যা", "Network Connection Error", 0xFFE11D48);
 
     companion object {
         fun fromCode(code: String?): GameServerStatus {

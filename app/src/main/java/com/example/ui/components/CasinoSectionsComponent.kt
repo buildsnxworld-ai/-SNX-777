@@ -3,6 +3,7 @@ package com.example.ui.components
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -35,6 +36,7 @@ import androidx.compose.ui.unit.sp
  */
 @Composable
 fun CasinoSectionsComponent(
+    onOpenGame: ((String) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -58,17 +60,18 @@ fun CasinoSectionsComponent(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Box(modifier = Modifier.weight(1f)) {
-                LiveDealerCard(
-                    brand = "EVOLUTION GAMING",
-                    sub = "LIVE CASINO",
-                    hairColor = Color(0xFF1E100B),
-                    dressColor = Color(0xFF991B1B), // Burgundy / Maroon dress
-                    jewelryColor = Color(0xFFFFD700),
-                    bgGradients = listOf(Color(0xFF4A1024), Color(0xFF1D060E), Color(0xFF03191D))
+            Box(
+                modifier = Modifier.weight(1f)
+            ) {
+                CrazyTimeCard(
+                    onPlay = { onOpenGame?.invoke("live_evolution_gaming") }
                 )
             }
-            Box(modifier = Modifier.weight(1f)) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable(enabled = onOpenGame != null) { onOpenGame?.invoke("live_playtech") }
+            ) {
                 LiveDealerCard(
                     brand = "PLAYTECH",
                     sub = "LIVE CASINO",
@@ -79,7 +82,11 @@ fun CasinoSectionsComponent(
                     bgGradients = listOf(Color(0xFF581C2E), Color(0xFF240A12), Color(0xFF03191D))
                 )
             }
-            Box(modifier = Modifier.weight(1f)) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable(enabled = onOpenGame != null) { onOpenGame?.invoke("live_w_casino") }
+            ) {
                 LiveDealerCard(
                     brand = "W CASINO",
                     sub = "LIVE CASINO",
@@ -109,7 +116,11 @@ fun CasinoSectionsComponent(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             // Player 1: Indian Team Blue & Orange Jersey with Helmet & CEAT bat (Rohit Sharma style)
-            Box(modifier = Modifier.weight(1f)) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable(enabled = onOpenGame != null) { onOpenGame?.invoke("sports_9wickets") }
+            ) {
                 CricketPlayerCard(
                     name = "9WICKETS",
                     sub = "SPORTS",
@@ -123,7 +134,11 @@ fun CasinoSectionsComponent(
             }
 
             // Player 2: Blue Jersey Striking Bat upward (Virat / Hardik style)
-            Box(modifier = Modifier.weight(1f)) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable(enabled = onOpenGame != null) { onOpenGame?.invoke("sports_lucky") }
+            ) {
                 CricketPlayerCard(
                     name = "LUCKY SPORTS",
                     sub = "SPORTS",
@@ -137,7 +152,11 @@ fun CasinoSectionsComponent(
             }
 
             // Player 3: KKR Purple Jersey with Gold & Bat held up (Rinku / Russell style)
-            Box(modifier = Modifier.weight(1f)) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable(enabled = onOpenGame != null) { onOpenGame?.invoke("sports_saba") }
+            ) {
                 CricketPlayerCard(
                     name = "SABA",
                     sub = "SPORTS",
@@ -163,49 +182,46 @@ fun CasinoSectionsComponent(
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // Row 1: Wild Athena Rising, Fortune Gems 2, Clover Coins 3x3
+        // Row 1: Anubis Wrath, Fortune Gems 3, 777 Rocket
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Box(modifier = Modifier.weight(1f)) {
-                SlotGameCardArt(
-                    title = "WILD ATHENA",
-                    subtitle = "RISING 2 VA 8",
-                    provider = "VICTORY ARK",
-                    theme = SlotTheme.ATHENA_GODDESS,
-                    gradient = listOf(Color(0xFFB45309), Color(0xFF451A03), Color(0xFF1A0A02))
+            Box(
+                modifier = Modifier.weight(1f)
+            ) {
+                AnubisWrathCard(
+                    onPlay = { onOpenGame?.invoke("slot_anubis_wrath") }
                 )
             }
-            Box(modifier = Modifier.weight(1f)) {
-                SlotGameCardArt(
-                    title = "FORTUNE",
-                    subtitle = "GEMS 2",
-                    provider = "JILI",
-                    multiplierBadge = "15X",
-                    theme = SlotTheme.GOLDEN_GARUDA_MASK,
-                    gradient = listOf(Color(0xFFF59E0B), Color(0xFFB45309), Color(0xFF2C0B02))
+            Box(
+                modifier = Modifier.weight(1f)
+            ) {
+                FortuneGems3Card(
+                    onPlay = { onOpenGame?.invoke("slot_fortune_gems_3") }
                 )
             }
-            Box(modifier = Modifier.weight(1f)) {
-                SlotGameCardArt(
-                    title = "CLOVER",
-                    subtitle = "COINS 3x3",
-                    provider = "JILI",
-                    theme = SlotTheme.POT_OF_GOLD,
-                    gradient = listOf(Color(0xFF15803D), Color(0xFF14532D), Color(0xFF052E16))
+            Box(
+                modifier = Modifier.weight(1f)
+            ) {
+                Rocket777Card(
+                    onPlay = { onOpenGame?.invoke("slot_777_rocket") }
                 )
             }
         }
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // Row 2: Wild Bandito (25,000x), Lucky Neko, Fortuna Do Garuda (1000x)
+        // Row 2: Wild Bandito (25,000x), Lucky Neko, Fortune Garuda 500
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Box(modifier = Modifier.weight(1f)) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable(enabled = onOpenGame != null) { onOpenGame?.invoke("slot_wild_bandito") }
+            ) {
                 SlotGameCardArt(
                     title = "WILD",
                     subtitle = "BANDITO",
@@ -215,7 +231,11 @@ fun CasinoSectionsComponent(
                     gradient = listOf(Color(0xFF9333EA), Color(0xFF581C87), Color(0xFF1E053A))
                 )
             }
-            Box(modifier = Modifier.weight(1f)) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable(enabled = onOpenGame != null) { onOpenGame?.invoke("slot_lucky_neko") }
+            ) {
                 SlotGameCardArt(
                     title = "LUCKY",
                     subtitle = "NEKO",
@@ -224,14 +244,11 @@ fun CasinoSectionsComponent(
                     gradient = listOf(Color(0xFFDB2777), Color(0xFF831843), Color(0xFF240713))
                 )
             }
-            Box(modifier = Modifier.weight(1f)) {
-                SlotGameCardArt(
-                    title = "FORTUNA DO",
-                    subtitle = "GARUDA",
-                    provider = "JILI",
-                    multiplierBadge = "1000x",
-                    theme = SlotTheme.GARUDA_GOLDEN_WINGS,
-                    gradient = listOf(Color(0xFFEA580C), Color(0xFF9A3412), Color(0xFF2B0A03))
+            Box(
+                modifier = Modifier.weight(1f)
+            ) {
+                FortuneGarudaCard(
+                    onPlay = { onOpenGame?.invoke("fortune_garuda") }
                 )
             }
         }
@@ -243,7 +260,11 @@ fun CasinoSectionsComponent(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Box(modifier = Modifier.weight(1f)) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable(enabled = onOpenGame != null) { onOpenGame?.invoke("flyx") }
+            ) {
                 SlotGameCardArt(
                     title = "FlyX",
                     subtitle = "CASH TURBO",
@@ -252,7 +273,11 @@ fun CasinoSectionsComponent(
                     gradient = listOf(Color(0xFFC026D3), Color(0xFF701A75), Color(0xFF260527))
                 )
             }
-            Box(modifier = Modifier.weight(1f)) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable(enabled = onOpenGame != null) { onOpenGame?.invoke("slot_lucky_jaguar") }
+            ) {
                 SlotGameCardArt(
                     title = "LUCKY",
                     subtitle = "JAGUAR",
@@ -261,7 +286,11 @@ fun CasinoSectionsComponent(
                     gradient = listOf(Color(0xFF0D9488), Color(0xFF115E59), Color(0xFF042F2E))
                 )
             }
-            Box(modifier = Modifier.weight(1f)) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable(enabled = onOpenGame != null) { onOpenGame?.invoke("slot_poker_win") }
+            ) {
                 SlotGameCardArt(
                     title = "POKER",
                     subtitle = "WIN!",
@@ -280,7 +309,11 @@ fun CasinoSectionsComponent(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Box(modifier = Modifier.weight(1f)) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable(enabled = onOpenGame != null) { onOpenGame?.invoke("slot_money_coming") }
+            ) {
                 SlotGameCardArt(
                     title = "MONEY",
                     subtitle = "COMING",
@@ -289,23 +322,18 @@ fun CasinoSectionsComponent(
                     gradient = listOf(Color(0xFF059669), Color(0xFF064E3B), Color(0xFF022C22))
                 )
             }
-            Box(modifier = Modifier.weight(1f)) {
-                SlotGameCardArt(
-                    title = "3 LUCKY",
-                    subtitle = "CROWN ACE",
-                    provider = "JILI",
-                    theme = SlotTheme.JOKER_CROWN,
-                    gradient = listOf(Color(0xFF65A30D), Color(0xFF365314), Color(0xFF142405))
+            Box(
+                modifier = Modifier.weight(1f)
+            ) {
+                BoxingKingCard(
+                    onPlay = { onOpenGame?.invoke("boxing_king") }
                 )
             }
-            Box(modifier = Modifier.weight(1f)) {
-                SlotGameCardArt(
-                    title = "MIGHTY",
-                    subtitle = "SEVENS",
-                    provider = "FASTSPIN",
-                    multiplierBadge = "25000X",
-                    theme = SlotTheme.GOLDEN_STAR_SEVENS,
-                    gradient = listOf(Color(0xFFD97706), Color(0xFF78350F), Color(0xFF281102))
+            Box(
+                modifier = Modifier.weight(1f)
+            ) {
+                MightySevensCard(
+                    onPlay = { onOpenGame?.invoke("slot_mighty_sevens") }
                 )
             }
         }

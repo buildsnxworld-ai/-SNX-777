@@ -986,246 +986,190 @@ private fun SuperAcePlayScreen(
         }
 
         // -------------------------------------------------------------
-        // 4. WIN DISPLAY CONSOLE
+        // 4. JILI CASINO TABLE RAIL WITH CURVED FELT & MAHOGANY "WIN 0.000"
         // -------------------------------------------------------------
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            color = Color(0xFF121B27),
-            border = BorderStroke(1.dp, Color(0xFF2A3D52))
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 5.dp),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "WIN",
-                    color = Color(0xFFFFD54F),
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Black,
-                    letterSpacing = 1.sp
-                )
-                Spacer(modifier = Modifier.width(16.dp))
-                Text(
-                    text = if (winAmount > 0) String.format("%.3f", winAmount) else "0.000",
-                    color = if (winAmount > 0) Color(0xFF00FF66) else Color.White,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Black
-                )
-            }
-        }
+        JiliCurvedTableTrim(winAmount = winAmount)
 
         // -------------------------------------------------------------
-        // 5. BOTTOM CONTROL DECK: Settings, Bet, Giant Gold Spin, Auto, Turbo
+        // 5. JILI CONTROL DECK: Settings, Bet, Giant Gold Spin, Auto, Flaming Turbo
         // -------------------------------------------------------------
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(
                     Brush.verticalGradient(
-                        listOf(Color(0xFF1E140F), Color(0xFF120C09), Color(0xFF0A0604))
+                        listOf(Color(0xFF26121F), Color(0xFF1B0C16), Color(0xFF12070E))
                     )
                 )
-                .padding(horizontal = 14.dp, vertical = 8.dp)
         ) {
+            // Subtle damask wallpaper pattern overlay
+            Canvas(modifier = Modifier.matchParentSize()) {
+                val stepX = 48.dp.toPx()
+                val stepY = 32.dp.toPx()
+                var y = 0f
+                while (y < size.height) {
+                    var x = 0f
+                    while (x < size.width) {
+                        // Diamond damask motif
+                        val path = Path().apply {
+                            moveTo(x + stepX / 2, y)
+                            lineTo(x + stepX, y + stepY / 2)
+                            lineTo(x + stepX / 2, y + stepY)
+                            lineTo(x, y + stepY / 2)
+                            close()
+                        }
+                        drawPath(path, color = Color(0xFF4A253D).copy(alpha = 0.15f), style = Stroke(width = 1f))
+                        drawCircle(color = Color(0xFF5E2F4E).copy(alpha = 0.12f), radius = 3f, center = Offset(x + stepX / 2, y + stepY / 2))
+                        x += stepX
+                    }
+                    y += stepY
+                }
+            }
+
+            // Controls row
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                horizontalArrangement = Arrangement.SpaceAround,
+                verticalAlignment = Alignment.Bottom
             ) {
                 // 1. Settings Icon Button
-                Surface(
-                    shape = CircleShape,
-                    color = Color(0xFF3D3242),
-                    border = BorderStroke(1.dp, Color(0xFF5E4F63)),
-                    modifier = Modifier
-                        .size(38.dp)
-                        .clickable { showBuyBonusDialog = true }
-                ) {
-                    Icon(
-                        Icons.Default.Settings,
-                        contentDescription = "Settings",
-                        tint = Color(0xFFCBD5E1),
-                        modifier = Modifier.padding(8.dp)
-                    )
-                }
-
-                // 2. Bet Adjuster Button: (-) / (+) Coin with "Bet 2" underneath
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.clickable {
-                        if (!isSpinning) {
-                            val currentIndex = availableBets.indexOf(betAmount)
-                            val nextIndex = (currentIndex + 1) % availableBets.size
-                            betAmount = availableBets[nextIndex]
-                        }
-                    }
+                    modifier = Modifier.padding(bottom = 12.dp)
                 ) {
-                    Surface(
-                        shape = CircleShape,
-                        color = Color(0xFF1F4A30),
-                        border = BorderStroke(1.5.dp, Color(0xFF2CB544)),
-                        modifier = Modifier.size(38.dp)
+                    JiliDeckCircularButton(
+                        onClick = { showBuyBonusDialog = true }
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Text(
-                                text = "±",
-                                color = Color.White,
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "Settings",
+                            tint = Color(0xFFD8D3D8),
+                            modifier = Modifier.size(24.dp)
+                        )
                     }
-                    Spacer(modifier = Modifier.height(2.dp))
+                }
+
+                // 2. Bet Adjuster Button: Stacked Casino Chips with "Bet 2" underneath
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.padding(bottom = 6.dp)
+                ) {
+                    JiliDeckCircularButton(
+                        onClick = {
+                            if (!isSpinning) {
+                                val currentIndex = availableBets.indexOf(betAmount)
+                                val nextIndex = (currentIndex + 1) % availableBets.size
+                                betAmount = availableBets[nextIndex]
+                            }
+                        }
+                    ) {
+                        JiliCasinoChipsGraphic()
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = "Bet ${betAmount.toInt()}",
                         color = Color.White,
                         fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        style = androidx.compose.ui.text.TextStyle(
+                            shadow = androidx.compose.ui.graphics.Shadow(
+                                color = Color.Black,
+                                offset = Offset(1f, 1f),
+                                blurRadius = 2f
+                            )
+                        )
                     )
                 }
 
-                // 3. GIANT CENTER GOLDEN SPIN BUTTON
-                Surface(
-                    shape = CircleShape,
-                    color = Color(0xFFFFB300),
-                    border = BorderStroke(3.dp, Brush.radialGradient(listOf(Color(0xFFFFEE55), Color(0xFFB45309)))),
-                    modifier = Modifier
-                        .size(72.dp)
-                        .shadow(16.dp, CircleShape, spotColor = Color(0xFFFFC107))
-                        .clickable(enabled = !isSpinning) { executeSpin() }
-                        .testTag("super_ace_main_spin_btn")
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(
-                                Brush.radialGradient(
-                                    colors = listOf(
-                                        Color(0xFFFFEE55),
-                                        Color(0xFFF59E0B),
-                                        Color(0xFFD97706),
-                                        Color(0xFF92400E)
-                                    )
-                                )
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        // Curved rotating arrow
-                        Canvas(
-                            modifier = Modifier
-                                .size(58.dp)
-                                .rotate(spinButtonRotation.value)
-                        ) {
-                            drawArc(
-                                brush = Brush.sweepGradient(
-                                    listOf(Color.White, Color.Transparent)
-                                ),
-                                startAngle = 30f,
-                                sweepAngle = 260f,
-                                useCenter = false,
-                                style = Stroke(width = 7f, cap = StrokeCap.Round)
-                            )
-                        }
-
-                        // Embossed "JILI" in golden relief
-                        Surface(
-                            shape = CircleShape,
-                            color = Color(0xFFB45309),
-                            border = BorderStroke(1.dp, Color(0xFFFFD54F)),
-                            modifier = Modifier.size(34.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Text(
-                                    text = "JILI",
-                                    color = Color(0xFFFFEE55),
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Black,
-                                    letterSpacing = 0.5.sp
-                                )
-                            }
-                        }
-                    }
-                }
+                // 3. GIANT CENTER 3D GOLD MEDALLION SPIN BUTTON
+                JiliGiantSpinMedallion(
+                    isSpinning = isSpinning,
+                    rotation = spinButtonRotation.value,
+                    onClick = { executeSpin() }
+                )
 
                 // 4. Auto-Spin Button
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.clickable {
-                        isAutoSpin = !isAutoSpin
-                        if (isAutoSpin && !isSpinning) executeSpin()
-                    }
+                    modifier = Modifier.padding(bottom = 6.dp)
                 ) {
-                    Surface(
-                        shape = CircleShape,
-                        color = if (isAutoSpin) Color(0xFFD97706) else Color(0xFF3B281B),
-                        border = BorderStroke(1.5.dp, if (isAutoSpin) Color(0xFFFFEE55) else Color(0xFF785434)),
-                        modifier = Modifier.size(38.dp)
+                    JiliDeckCircularButton(
+                        onClick = {
+                            isAutoSpin = !isAutoSpin
+                            if (isAutoSpin && !isSpinning) executeSpin()
+                        }
                     ) {
-                        Icon(
-                            Icons.Default.Refresh,
-                            contentDescription = "Auto",
-                            tint = if (isAutoSpin) Color.White else Color(0xFFFFB300),
-                            modifier = Modifier.padding(8.dp)
-                        )
+                        JiliAutoSpinGraphic(isAutoSpin = isAutoSpin)
                     }
-                    Spacer(modifier = Modifier.height(2.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = if (isAutoSpin) "AUTO ON" else "Auto",
+                        text = "Auto",
                         color = if (isAutoSpin) Color(0xFF00FF66) else Color(0xFFCBD5E1),
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        style = androidx.compose.ui.text.TextStyle(
+                            shadow = androidx.compose.ui.graphics.Shadow(
+                                color = Color.Black,
+                                offset = Offset(1f, 1f),
+                                blurRadius = 2f
+                            )
+                        )
                     )
                 }
 
-                // 5. TURBO Spin Button
+                // 5. TURBO Spin Button with Fiery Turbo Badge, Pill Slot & Subtitle
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.clickable { isTurbo = !isTurbo }
+                    modifier = Modifier.padding(bottom = 2.dp)
                 ) {
-                    Surface(
-                        shape = CircleShape,
-                        color = if (isTurbo) Color(0xFFDC2626) else Color(0xFF382319),
-                        border = BorderStroke(1.5.dp, if (isTurbo) Color(0xFFFFEE55) else Color(0xFF785434)),
-                        modifier = Modifier.size(38.dp)
+                    // Flaming TURBO badge
+                    JiliFlamingTurboBadge(
+                        modifier = Modifier.offset(y = 2.dp)
+                    )
+
+                    // Plum metallic button with golden lightning bolt
+                    JiliDeckCircularButton(
+                        onClick = { isTurbo = !isTurbo }
                     ) {
-                        Icon(
-                            Icons.Default.PlayArrow,
-                            contentDescription = "Turbo",
-                            tint = if (isTurbo) Color.White else Color(0xFFFFB300),
-                            modifier = Modifier.padding(7.dp)
-                        )
+                        JiliTurboLightningGraphic()
                     }
+                    Spacer(modifier = Modifier.height(3.dp))
+
+                    // Pill indicator slot
+                    JiliTurboPill(isTurbo = isTurbo)
                     Spacer(modifier = Modifier.height(2.dp))
+
+                    // "Press turbo spin" subtitle
                     Text(
-                        text = if (isTurbo) "TURBO" else "Press turbo",
-                        color = if (isTurbo) Color(0xFFFF5252) else Color(0xFF94A3B8),
-                        fontSize = 9.5.sp,
-                        fontWeight = FontWeight.Bold
+                        text = "Press turbo spin",
+                        color = Color(0xFF9E8E98),
+                        fontSize = 8.5.sp,
+                        fontWeight = FontWeight.Normal,
+                        maxLines = 1
                     )
                 }
             }
         }
 
         // -------------------------------------------------------------
-        // 6. BOTTOMMOST FOOTER: v_186_0007 | LV0 | Balance 0.000 | WiFi
+        // 6. BOTTOMMOST STATUS BAR: v_186_0007 | LV0 | Balance 0.000 | Neon WiFi
         // -------------------------------------------------------------
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color(0xFF070B10))
-                .padding(horizontal = 12.dp, vertical = 4.dp),
+                .background(Color(0xFF0E060C))
+                .padding(horizontal = 14.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Version
+            // Version on left
             Text(
                 text = "v_186_0007",
                 color = Color(0xFF64748B),
                 fontSize = 10.sp,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.Normal
             )
 
             // Center: LV0 pill + Real Balance
@@ -1234,11 +1178,12 @@ private fun SuperAcePlayScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Surface(
-                    shape = RoundedCornerShape(4.dp),
-                    color = Color(0xFF1E293B)
+                    shape = RoundedCornerShape(3.dp),
+                    color = Color(0xFF261622),
+                    border = BorderStroke(0.5.dp, Color(0xFF4A3043))
                 ) {
                     Text(
-                        text = "LV0",
+                        text = "LV 0",
                         color = Color(0xFF94A3B8),
                         fontSize = 9.sp,
                         fontWeight = FontWeight.Bold,
@@ -1247,19 +1192,16 @@ private fun SuperAcePlayScreen(
                 }
 
                 Text(
-                    text = "Balance  ৳${String.format("%.2f", currentBalance)}",
+                    text = "Balance  ${if (currentBalance == 0.0) "0.000" else String.format("%.3f", currentBalance)}",
                     color = Color.White,
                     fontSize = 12.sp,
-                    fontWeight = FontWeight.Black
+                    fontWeight = FontWeight.Bold
                 )
             }
 
-            // Green WiFi Icon
-            Icon(
-                imageVector = Icons.Default.Wifi,
-                contentDescription = "Connection",
-                tint = Color(0xFF4CAF50),
-                modifier = Modifier.size(14.dp)
+            // Neon green WiFi waves icon on right
+            JiliWifiWavesIcon(
+                modifier = Modifier.size(16.dp)
             )
         }
     }
@@ -2020,4 +1962,664 @@ private fun CardWildIllustration(modifier: Modifier = Modifier) {
         }
     }
 }
+
+// -------------------------------------------------------------
+// JILI SUPER ACE REALISTIC CASINO BOTTOM CONSOLE (1:1 EXACT MATCH)
+// -------------------------------------------------------------
+
+@Composable
+private fun JiliCurvedTableTrim(
+    winAmount: Double,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(52.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val w = size.width
+            val h = size.height
+
+            // 1. Dark teal green casino felt at top
+            val feltPath = Path().apply {
+                moveTo(0f, 0f)
+                lineTo(w, 0f)
+                lineTo(w, h * 0.28f)
+                quadraticTo(w * 0.5f, h * 0.44f, 0f, h * 0.28f)
+                close()
+            }
+            drawPath(
+                feltPath,
+                brush = Brush.verticalGradient(
+                    listOf(Color(0xFF032B28), Color(0xFF06443E), Color(0xFF032623))
+                )
+            )
+
+            // 2. Fine gold trim separator line
+            val trimPath = Path().apply {
+                moveTo(0f, h * 0.28f)
+                quadraticTo(w * 0.5f, h * 0.44f, w, h * 0.28f)
+            }
+            drawPath(
+                trimPath,
+                brush = Brush.horizontalGradient(
+                    listOf(Color(0xFFB45309), Color(0xFFFDE047), Color(0xFFFFF9C4), Color(0xFFF59E0B), Color(0xFF92400E))
+                ),
+                style = Stroke(width = 3.5f)
+            )
+
+            // 3. Rich curved mahogany wood rail
+            val woodPath = Path().apply {
+                moveTo(0f, h * 0.29f)
+                quadraticTo(w * 0.5f, h * 0.45f, w, h * 0.29f)
+                lineTo(w, h)
+                lineTo(0f, h)
+                close()
+            }
+            drawPath(
+                woodPath,
+                brush = Brush.verticalGradient(
+                    listOf(
+                        Color(0xFF5A220F),
+                        Color(0xFF6E2B14),
+                        Color(0xFF45190B),
+                        Color(0xFF2E0F07),
+                        Color(0xFF1E0A04)
+                    )
+                )
+            )
+
+            // Subtle wood grain highlights
+            for (i in 1..3) {
+                val yRatio = 0.45f + i * 0.15f
+                val grainPath = Path().apply {
+                    moveTo(0f, h * yRatio)
+                    quadraticTo(w * 0.5f, h * (yRatio + 0.12f), w, h * yRatio)
+                }
+                drawPath(
+                    grainPath,
+                    color = Color(0xFF8B3E1B).copy(alpha = 0.25f),
+                    style = Stroke(width = 2f)
+                )
+            }
+        }
+
+        // Centered WIN Display: "WIN   0.000"
+        Row(
+            modifier = Modifier
+                .offset(y = 2.dp)
+                .padding(horizontal = 20.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = "WIN",
+                color = Color(0xFFFDE047),
+                fontSize = 17.sp,
+                fontWeight = FontWeight.Black,
+                letterSpacing = 1.sp,
+                style = androidx.compose.ui.text.TextStyle(
+                    shadow = androidx.compose.ui.graphics.Shadow(
+                        color = Color.Black,
+                        offset = Offset(2f, 2f),
+                        blurRadius = 4f
+                    )
+                )
+            )
+            Spacer(modifier = Modifier.width(32.dp))
+            Text(
+                text = if (winAmount > 0) String.format("%.3f", winAmount) else "0.000",
+                color = Color(0xFFFDE047),
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Black,
+                letterSpacing = 1.sp,
+                style = androidx.compose.ui.text.TextStyle(
+                    shadow = androidx.compose.ui.graphics.Shadow(
+                        color = Color.Black,
+                        offset = Offset(2f, 2f),
+                        blurRadius = 4f
+                    )
+                )
+            )
+        }
+    }
+}
+
+@Composable
+private fun JiliDeckCircularButton(
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+    content: @Composable BoxScope.() -> Unit
+) {
+    Box(
+        modifier = modifier
+            .size(46.dp)
+            .shadow(8.dp, CircleShape, spotColor = Color.Black)
+            .clip(CircleShape)
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(Color(0xFF8C667F), Color(0xFF55364D), Color(0xFF2C1926))
+                )
+            )
+            .border(
+                width = 2.dp,
+                brush = Brush.verticalGradient(
+                    listOf(Color(0xFFA67E99), Color(0xFF67435E), Color(0xFF22131F))
+                ),
+                shape = CircleShape
+            )
+            .clickable { onClick() }
+            .padding(2.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(CircleShape)
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(
+                            Color(0xFF6E4A62),
+                            Color(0xFF4C3043),
+                            Color(0xFF2C1926)
+                        )
+                    )
+                ),
+            contentAlignment = Alignment.Center,
+            content = content
+        )
+    }
+}
+
+@Composable
+private fun JiliCasinoChipsGraphic(modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier.size(28.dp)) {
+        val w = size.width
+        val h = size.height
+
+        // Bottom Chip
+        drawOval(
+            color = Color(0xFF1B5E20),
+            topLeft = Offset(w * 0.12f, h * 0.48f),
+            size = Size(w * 0.76f, h * 0.38f)
+        )
+        drawOval(
+            color = Color(0xFF2E7D32),
+            topLeft = Offset(w * 0.12f, h * 0.44f),
+            size = Size(w * 0.76f, h * 0.38f)
+        )
+        drawArc(
+            color = Color.White,
+            startAngle = 10f, sweepAngle = 28f, useCenter = false,
+            topLeft = Offset(w * 0.12f, h * 0.44f), size = Size(w * 0.76f, h * 0.38f),
+            style = Stroke(width = 3f)
+        )
+        drawArc(
+            color = Color.White,
+            startAngle = 140f, sweepAngle = 28f, useCenter = false,
+            topLeft = Offset(w * 0.12f, h * 0.44f), size = Size(w * 0.76f, h * 0.38f),
+            style = Stroke(width = 3f)
+        )
+
+        // Middle Chip
+        drawOval(
+            color = Color(0xFF1B5E20),
+            topLeft = Offset(w * 0.12f, h * 0.28f),
+            size = Size(w * 0.76f, h * 0.38f)
+        )
+        drawOval(
+            color = Color(0xFF388E3C),
+            topLeft = Offset(w * 0.12f, h * 0.24f),
+            size = Size(w * 0.76f, h * 0.38f)
+        )
+        drawArc(
+            color = Color.White,
+            startAngle = 10f, sweepAngle = 28f, useCenter = false,
+            topLeft = Offset(w * 0.12f, h * 0.24f), size = Size(w * 0.76f, h * 0.38f),
+            style = Stroke(width = 3f)
+        )
+        drawArc(
+            color = Color.White,
+            startAngle = 140f, sweepAngle = 28f, useCenter = false,
+            topLeft = Offset(w * 0.12f, h * 0.24f), size = Size(w * 0.76f, h * 0.38f),
+            style = Stroke(width = 3f)
+        )
+
+        // Top Chip with Plus (+)
+        drawOval(
+            color = Color(0xFF1B5E20),
+            topLeft = Offset(w * 0.12f, h * 0.08f),
+            size = Size(w * 0.76f, h * 0.38f)
+        )
+        drawOval(
+            brush = Brush.radialGradient(
+                colors = listOf(Color(0xFF66BB6A), Color(0xFF43A047), Color(0xFF2E7D32)),
+                center = Offset(w * 0.5f, h * 0.25f)
+            ),
+            topLeft = Offset(w * 0.12f, h * 0.04f),
+            size = Size(w * 0.76f, h * 0.38f)
+        )
+        drawOval(
+            color = Color(0xFF81C784),
+            topLeft = Offset(w * 0.12f, h * 0.04f),
+            size = Size(w * 0.76f, h * 0.38f),
+            style = Stroke(width = 1.5f)
+        )
+
+        // White edge stripes on top chip
+        for (deg in listOf(15f, 75f, 135f, 195f, 255f, 315f)) {
+            drawArc(
+                color = Color.White,
+                startAngle = deg, sweepAngle = 20f, useCenter = false,
+                topLeft = Offset(w * 0.15f, h * 0.06f), size = Size(w * 0.70f, h * 0.34f),
+                style = Stroke(width = 2.5f)
+            )
+        }
+
+        // Plus (+) mark on top chip
+        val cx = w * 0.5f
+        val cy = h * 0.23f
+        drawLine(
+            color = Color.White,
+            start = Offset(cx - 5f, cy),
+            end = Offset(cx + 5f, cy),
+            strokeWidth = 3f,
+            cap = StrokeCap.Round
+        )
+        drawLine(
+            color = Color.White,
+            start = Offset(cx, cy - 4f),
+            end = Offset(cx, cy + 4f),
+            strokeWidth = 3f,
+            cap = StrokeCap.Round
+        )
+    }
+}
+
+@Composable
+private fun JiliGiantSpinMedallion(
+    isSpinning: Boolean,
+    rotation: Float,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .size(86.dp)
+            .offset(y = (-14).dp)
+            .shadow(16.dp, CircleShape, spotColor = Color(0xFFFF9800))
+            .clip(CircleShape)
+            .clickable(enabled = !isSpinning) { onClick() }
+            .testTag("super_ace_main_spin_btn"),
+        contentAlignment = Alignment.Center
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val w = size.width
+            val h = size.height
+            val center = Offset(w / 2, h / 2)
+            val radius = w / 2
+
+            // 1. Outer scalloped/ridged golden notches
+            val teeth = 28
+            for (i in 0 until teeth) {
+                val angle = (i * 360f / teeth) * (Math.PI.toFloat() / 180f)
+                val toothRadius = radius - 3.5f
+                val tx = center.x + toothRadius * cos(angle)
+                val ty = center.y + toothRadius * sin(angle)
+                drawCircle(
+                    color = if (i % 2 == 0) Color(0xFFFFD54F) else Color(0xFFD97706),
+                    radius = 4f,
+                    center = Offset(tx, ty)
+                )
+            }
+
+            // 2. Outer golden bevel rim
+            drawCircle(
+                brush = Brush.sweepGradient(
+                    listOf(
+                        Color(0xFFFFF9C4),
+                        Color(0xFFF59E0B),
+                        Color(0xFFB45309),
+                        Color(0xFFFFF9C4),
+                        Color(0xFFF59E0B)
+                    )
+                ),
+                radius = radius - 5f,
+                center = center
+            )
+
+            // 3. Inner golden rim groove
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(Color(0xFFB45309), Color(0xFF78350F)),
+                    center = center
+                ),
+                radius = radius - 10f,
+                center = center,
+                style = Stroke(width = 3.5f)
+            )
+
+            // 4. Center radiant gold face
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        Color(0xFFFFFDE7),
+                        Color(0xFFFFEE58),
+                        Color(0xFFF59E0B),
+                        Color(0xFFD97706),
+                        Color(0xFF92400E)
+                    ),
+                    center = Offset(center.x, center.y - 4f)
+                ),
+                radius = radius - 12f,
+                center = center
+            )
+        }
+
+        // Rotating thick white swoosh arrow with arrowhead
+        Canvas(
+            modifier = Modifier
+                .size(62.dp)
+                .rotate(rotation)
+        ) {
+            val w = size.width
+            val h = size.height
+            val arrowRect = Size(w * 0.82f, h * 0.82f)
+            val arrowOffset = Offset(w * 0.09f, h * 0.09f)
+
+            // Circular white arc with smooth tapered sweep
+            drawArc(
+                color = Color.White,
+                startAngle = 140f,
+                sweepAngle = 230f,
+                useCenter = false,
+                topLeft = arrowOffset,
+                size = arrowRect,
+                style = Stroke(width = 8f, cap = StrokeCap.Round)
+            )
+
+            // Arrowhead pointing up-right at end of arc
+            val angleRad = (370f * Math.PI / 180.0)
+            val cx = w / 2 + (w * 0.41f) * cos(angleRad).toFloat()
+            val cy = h / 2 + (h * 0.41f) * sin(angleRad).toFloat()
+
+            val arrowPath = Path().apply {
+                moveTo(cx + 8f, cy - 12f)
+                lineTo(cx + 16f, cy + 2f)
+                lineTo(cx - 1f, cy + 5f)
+                close()
+            }
+            drawPath(arrowPath, color = Color.White)
+        }
+
+        // Embossed "JILI" medallion in center
+        Surface(
+            shape = CircleShape,
+            color = Color(0xFFD97706),
+            border = BorderStroke(1.5.dp, Color(0xFFFFEE58)),
+            modifier = Modifier.size(36.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.radialGradient(
+                            listOf(Color(0xFFFFD54F), Color(0xFFF59E0B), Color(0xFFB45309))
+                        )
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "JILI",
+                    color = Color(0xFF78350F),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = 0.5.sp,
+                    modifier = Modifier.offset(y = 1.dp)
+                )
+                Text(
+                    text = "JILI",
+                    color = Color(0xFFFFF9C4),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = 0.5.sp
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun JiliAutoSpinGraphic(isAutoSpin: Boolean) {
+    Canvas(modifier = Modifier.size(24.dp)) {
+        val w = size.width
+        val h = size.height
+        val color = if (isAutoSpin) Color(0xFF00FF66) else Color(0xFFFDE047)
+
+        drawArc(
+            color = color,
+            startAngle = 30f,
+            sweepAngle = 135f,
+            useCenter = false,
+            topLeft = Offset(w * 0.1f, h * 0.1f),
+            size = Size(w * 0.8f, h * 0.8f),
+            style = Stroke(width = 3f, cap = StrokeCap.Round)
+        )
+        drawArc(
+            color = color,
+            startAngle = 210f,
+            sweepAngle = 135f,
+            useCenter = false,
+            topLeft = Offset(w * 0.1f, h * 0.1f),
+            size = Size(w * 0.8f, h * 0.8f),
+            style = Stroke(width = 3f, cap = StrokeCap.Round)
+        )
+
+        val playPath = Path().apply {
+            moveTo(w * 0.44f, h * 0.35f)
+            lineTo(w * 0.66f, h * 0.50f)
+            lineTo(w * 0.44f, h * 0.65f)
+            close()
+        }
+        drawPath(playPath, color = color)
+    }
+}
+
+@Composable
+private fun JiliTurboLightningGraphic() {
+    Canvas(modifier = Modifier.size(24.dp)) {
+        val w = size.width
+        val h = size.height
+        val boltPath = Path().apply {
+            moveTo(w * 0.58f, h * 0.12f)
+            lineTo(w * 0.32f, h * 0.50f)
+            lineTo(w * 0.52f, h * 0.50f)
+            lineTo(w * 0.42f, h * 0.88f)
+            lineTo(w * 0.72f, h * 0.46f)
+            lineTo(w * 0.52f, h * 0.46f)
+            close()
+        }
+        drawPath(boltPath, color = Color(0xFFFDE047))
+    }
+}
+
+@Composable
+private fun JiliFlamingTurboBadge(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .width(76.dp)
+            .height(32.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val w = size.width
+            val h = size.height
+
+            // 1. Fiery flames shooting backward and upward
+            val flamePath = Path().apply {
+                moveTo(w * 0.28f, h * 0.25f)
+                cubicTo(w * 0.35f, h * 0.05f, w * 0.55f, 0f, w * 0.68f, h * 0.08f)
+                cubicTo(w * 0.78f, h * 0.04f, w * 0.90f, h * 0.12f, w * 0.96f, h * 0.24f)
+                cubicTo(w * 0.88f, h * 0.30f, w * 0.80f, h * 0.30f, w * 0.74f, h * 0.36f)
+                cubicTo(w * 0.84f, h * 0.40f, w * 0.92f, h * 0.46f, w * 0.99f, h * 0.54f)
+                cubicTo(w * 0.85f, h * 0.64f, w * 0.72f, h * 0.58f, w * 0.58f, h * 0.62f)
+                cubicTo(w * 0.46f, h * 0.70f, w * 0.36f, h * 0.64f, w * 0.26f, h * 0.58f)
+                close()
+            }
+            drawPath(
+                flamePath,
+                brush = Brush.horizontalGradient(
+                    listOf(Color(0xFFDC2626), Color(0xFFEF4444), Color(0xFFF97316), Color(0xFFFDE047))
+                )
+            )
+
+            // Inner bright golden-yellow flame core
+            val innerFlame = Path().apply {
+                moveTo(w * 0.30f, h * 0.30f)
+                cubicTo(w * 0.45f, h * 0.15f, w * 0.60f, h * 0.12f, w * 0.76f, h * 0.20f)
+                cubicTo(w * 0.70f, h * 0.28f, w * 0.80f, h * 0.32f, w * 0.88f, h * 0.40f)
+                cubicTo(w * 0.76f, h * 0.48f, w * 0.62f, h * 0.44f, w * 0.48f, h * 0.48f)
+                close()
+            }
+            drawPath(
+                innerFlame,
+                brush = Brush.horizontalGradient(
+                    listOf(Color(0xFFFDE047), Color(0xFFF59E0B))
+                )
+            )
+
+            // 2. Golden Turbocharger Snail Housing
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(Color(0xFFFFF9C4), Color(0xFFF59E0B), Color(0xFFB45309)),
+                    center = Offset(w * 0.18f, h * 0.48f)
+                ),
+                radius = h * 0.38f,
+                center = Offset(w * 0.18f, h * 0.48f)
+            )
+            drawCircle(
+                color = Color(0xFF78350F),
+                radius = h * 0.38f,
+                center = Offset(w * 0.18f, h * 0.48f),
+                style = Stroke(width = 2f)
+            )
+            // Center turbine intake
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(Color(0xFF1E293B), Color(0xFF0F172A))
+                ),
+                radius = h * 0.20f,
+                center = Offset(w * 0.18f, h * 0.48f)
+            )
+            // Turbine blades
+            for (deg in 0 until 360 step 60) {
+                val rad = deg * Math.PI.toFloat() / 180f
+                val x1 = w * 0.18f + (h * 0.05f) * cos(rad)
+                val y1 = h * 0.48f + (h * 0.05f) * sin(rad)
+                val x2 = w * 0.18f + (h * 0.18f) * cos(rad)
+                val y2 = h * 0.48f + (h * 0.18f) * sin(rad)
+                drawLine(
+                    color = Color(0xFFFDE047),
+                    start = Offset(x1, y1),
+                    end = Offset(x2, y2),
+                    strokeWidth = 1.5f
+                )
+            }
+        }
+
+        // 3. 3D Bold Italic TURBO Text with Flame Outline
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 20.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "TURBO",
+                color = Color(0xFF7F1D1D),
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Black,
+                fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                letterSpacing = 0.5.sp,
+                modifier = Modifier.offset(x = 1.dp, y = 1.5.dp)
+            )
+            Text(
+                text = "TURBO",
+                color = Color(0xFFFFFBEB),
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Black,
+                fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                letterSpacing = 0.5.sp
+            )
+        }
+    }
+}
+
+@Composable
+private fun JiliTurboPill(isTurbo: Boolean) {
+    Box(
+        modifier = Modifier
+            .width(36.dp)
+            .height(10.dp)
+            .clip(RoundedCornerShape(5.dp))
+            .background(
+                if (isTurbo) Color(0xFF78350F) else Color(0xFF231610)
+            )
+            .border(
+                width = 1.dp,
+                color = if (isTurbo) Color(0xFFFFD54F) else Color(0xFF523321),
+                shape = RoundedCornerShape(5.dp)
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        if (isTurbo) {
+            Box(
+                modifier = Modifier
+                    .width(18.dp)
+                    .height(4.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(Color(0xFFFFEE58))
+            )
+        }
+    }
+}
+
+@Composable
+private fun JiliWifiWavesIcon(modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val w = size.width
+        val h = size.height
+        val color = Color(0xFF22C55E) // Neon green matching screenshot
+
+        // Center dot
+        drawCircle(
+            color = color,
+            radius = w * 0.09f,
+            center = Offset(w * 0.5f, h * 0.82f)
+        )
+        // Middle wave
+        drawArc(
+            color = color,
+            startAngle = 215f,
+            sweepAngle = 110f,
+            useCenter = false,
+            topLeft = Offset(w * 0.20f, h * 0.35f),
+            size = Size(w * 0.60f, h * 0.60f),
+            style = Stroke(width = 2.5f, cap = StrokeCap.Round)
+        )
+        // Outer wave
+        drawArc(
+            color = color,
+            startAngle = 215f,
+            sweepAngle = 110f,
+            useCenter = false,
+            topLeft = Offset(w * 0.05f, h * 0.10f),
+            size = Size(w * 0.90f, h * 0.90f),
+            style = Stroke(width = 2.5f, cap = StrokeCap.Round)
+        )
+    }
+}
+
 

@@ -46,13 +46,16 @@ fun GameServerNoticeModal(
     val game = notice.game
     val status = notice.status
 
-    val isUpdate = status == GameServerStatus.SERVER_UPDATE
     val isError = status == GameServerStatus.SERVER_ERROR
+    val isMaintenance = status == GameServerStatus.SERVER_MAINTENANCE || status == GameServerStatus.SERVER_UPDATE
+    val isUpgrade = status == GameServerStatus.SERVER_UPGRADE
+    val isOffline = status == GameServerStatus.SERVER_OFF || status == GameServerStatus.OFFLINE
 
-    val themeColor = when (status) {
-        GameServerStatus.SERVER_UPDATE -> Color(0xFFF59E0B) // Amber
-        GameServerStatus.SERVER_ERROR -> Color(0xFFEF4444)  // Crimson Red
-        else -> Color(0xFF64748B)                           // Slate
+    val themeColor = when {
+        isError -> Color(0xFFEF4444)        // Crimson Red
+        isMaintenance -> Color(0xFFF59E0B)  // Amber Orange
+        isUpgrade -> Color(0xFF38BDF8)      // Sky / Electric Blue
+        else -> Color(0xFF94A3B8)           // Slate
     }
 
     Dialog(onDismissRequest = onDismiss) {
@@ -98,7 +101,12 @@ fun GameServerNoticeModal(
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Text(
-                            text = if (isUpdate) "🛠️" else if (isError) "🚫" else "🔒",
+                            text = when {
+                                isError -> "⚠️"
+                                isMaintenance -> "🛠️"
+                                isUpgrade -> "🚀"
+                                else -> "🔌"
+                            },
                             fontSize = 32.sp
                         )
                     }
@@ -108,10 +116,11 @@ fun GameServerNoticeModal(
 
                 // Title
                 Text(
-                    text = when (status) {
-                        GameServerStatus.SERVER_UPDATE -> if (language == AppLanguage.BN) "সার্ভার আপডেট চলছে!" else "Server Update in Progress!"
-                        GameServerStatus.SERVER_ERROR -> if (language == AppLanguage.BN) "সার্ভার এরর / সংযোগ ত্রুটি!" else "Server Connection Error!"
-                        else -> if (language == AppLanguage.BN) "গেমটি বর্তমানে সাময়িক বন্ধ" else "Game Temporarily Inactive"
+                    text = when {
+                        isError -> if (language == AppLanguage.BN) "সার্ভার এরর (SERVER ERROR)!" else "Server Error 503!"
+                        isMaintenance -> if (language == AppLanguage.BN) "সার্ভার মেইনটেন্যান্স (MAINTENANCE)!" else "Server Under Maintenance!"
+                        isUpgrade -> if (language == AppLanguage.BN) "সার্ভার আপগ্রেড (SERVER UPGRADE)!" else "Server System Upgrade!"
+                        else -> if (language == AppLanguage.BN) "সার্ভার অফ (SERVER OFFLINE)!" else "Provider Server Offline!"
                     },
                     color = Color.White,
                     fontSize = 18.sp,
@@ -127,10 +136,11 @@ fun GameServerNoticeModal(
                     modifier = Modifier.padding(top = 6.dp)
                 ) {
                     Text(
-                        text = when (status) {
-                            GameServerStatus.SERVER_UPDATE -> "⚠️ SERVER UNDER MAINTENANCE"
-                            GameServerStatus.SERVER_ERROR -> "🚫 SERVER OFFLINE / 503 ERROR"
-                            else -> "🔒 GAME DISABLED BY ADMIN"
+                        text = when {
+                            isError -> "🚫 503 SERVICE UNAVAILABLE • TIMEOUT"
+                            isMaintenance -> "🛠️ ROUTINE MAINTENANCE IN PROGRESS"
+                            isUpgrade -> "🔄 ENGINE UPGRADE v4.8.2 ACTIVE"
+                            else -> "🔴 502 BAD GATEWAY • SERVER DISCONNECTED"
                         },
                         color = themeColor,
                         fontSize = 10.sp,
@@ -195,19 +205,23 @@ fun GameServerNoticeModal(
 
                 // Detailed message
                 Text(
-                    text = when (status) {
-                        GameServerStatus.SERVER_UPDATE -> if (language == AppLanguage.BN)
-                            "প্রিয় গ্রাহক, বর্তমানে এই গেমটির সার্ভারে আপগ্রেডেশন ও সিস্টেম মেইনটেন্যান্স কাজ চলছে। খুব শীঘ্রই গেমটি পুনরায় সবার জন্য চালু হবে। সাময়িক অসুবিধার জন্য আমরা আন্তরিকভাবে দুঃখিত।"
+                    text = when {
+                        isError -> if (language == AppLanguage.BN)
+                            "দুঃখিত! গেম প্রোভাইডারের সার্ভার থেকে সাময়িক সংযোগ বিচ্ছিন্ন হয়েছে (HTTP 503 Service Unavailable / Gateway Timeout)। প্রোভাইডার গেটওয়েতে টেকনিক্যাল টিম কাজ করছে। অনুগ্রহ করে কিছুক্ষণ পর পুনরায় চেষ্টা করুন। এরর কোড: ERR_PROV_503_GATEWAY_TIMEOUT"
                         else
-                            "Dear player, server upgrade and system maintenance is currently ongoing for this game. It will be restored very shortly. Thank you for your patience."
-                        GameServerStatus.SERVER_ERROR -> if (language == AppLanguage.BN)
-                            "দুঃখিত! এই গেমটির সার্ভার থেকে সাময়িক সংযোগ বিচ্ছিন্ন হয়েছে (Connection Timeout)। আমাদের টেকনিক্যাল টিম সমস্যা সমাধানে কাজ করছে। অনুগ্রহ করে কিছুক্ষণ পর আবার চেষ্টা করুন।"
+                            "The game provider gateway server is currently unresponsive (HTTP 503 Service Unavailable). Our technical operations team is investigating. Please retry in a few moments. Error Code: ERR_PROV_503_GATEWAY_TIMEOUT"
+                        isMaintenance -> if (language == AppLanguage.BN)
+                            "প্রিয় গ্রাহক, উন্নত গেমিং অভিজ্ঞতা ও ডেটা সুরক্ষার স্বার্থে এই গেম প্রোভাইডারের সার্ভারে রুটিন মেইনটেন্যান্স কাজ চলছে। মেইনটেন্যান্স চলাকালীন এই গেমটি সাময়িকভাবে বন্ধ থাকবে। আনুমানিক সময়: ১৫-২০ মিনিট। মেইনটেন্যান্স আইডি: #MNT-8821"
                         else
-                            "Sorry! There is a temporary connection issue with this game server. Our technical team is actively investigating. Please retry in a few moments."
+                            "Scheduled routine maintenance is currently underway for this provider to improve performance and security. Service will be restored shortly. Estimated duration: 15-20 mins. Maintenance ID: #MNT-8821"
+                        isUpgrade -> if (language == AppLanguage.BN)
+                            "এই গেম সার্ভারটি বর্তমানে নতুন হাই-স্পিড ইঞ্জিন ভার্সনে (v4.8.2) আপগ্রেড করা হচ্ছে। গেমিং ইঞ্জিন আপডেট এবং ডেটাবেস সিঙ্ক্রোনাইজেশন সম্পন্ন না হওয়া পর্যন্ত সাময়িক পরিষেবা স্থগিত রাখা হয়েছে। আপগ্রেড রেফারেন্স: #UPG-4820"
+                        else
+                            "Game engine is currently being upgraded to version 4.8.2 for enhanced gameplay stability. Access is temporarily restricted during database sync. Upgrade Ref: #UPG-4820"
                         else -> if (language == AppLanguage.BN)
-                            "এই গেমটি অ্যাডমিন প্যানেল কর্তৃক সাময়িকভাবে বন্ধ রাখা হয়েছে। অন্যান্য আকর্ষণীয় গেম খেলতে হোমপেজে ফিরে যান।"
+                            "এই গেমটির প্রোভাইডার সার্ভার বর্তমানে সম্পূর্ণ অফলাইনে রয়েছে অথবা আপনার অঞ্চলে সাময়িকভাবে সংযোগ বন্ধ রয়েছে (Status: 502 Bad Gateway / Disconnected)। অনুগ্রহ করে আমাদের সক্রিয় অন্যান্য গেম খেলুন।"
                         else
-                            "This game has been temporarily disabled by administration. Please enjoy our other active games."
+                            "The game provider server is currently offline or unreachable in this region (Status: 502 Bad Gateway / Disconnected). Please try our other active games."
                     },
                     color = Color(0xFFCBD5E1),
                     fontSize = 12.sp,

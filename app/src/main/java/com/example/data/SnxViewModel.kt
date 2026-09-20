@@ -100,8 +100,15 @@ class SnxViewModel(application: Application) : AndroidViewModel(application) {
     private val _gameServerNotice = MutableStateFlow<GameNoticeInfo?>(null)
     val gameServerNotice: StateFlow<GameNoticeInfo?> = _gameServerNotice.asStateFlow()
 
+    private val _gameNetworkErrorItem = MutableStateFlow<GameItem?>(null)
+    val gameNetworkErrorItem: StateFlow<GameItem?> = _gameNetworkErrorItem.asStateFlow()
+
     fun dismissGameServerNotice() {
         _gameServerNotice.value = null
+    }
+
+    fun dismissGameNetworkError() {
+        _gameNetworkErrorItem.value = null
     }
 
     init {
@@ -216,20 +223,13 @@ class SnxViewModel(application: Application) : AndroidViewModel(application) {
             return
         }
 
-        val game = _dynamicGames.value.firstOrNull { it.id == gameId }
-            ?: allGames.firstOrNull { it.id == gameId }
-
-        if (game != null) {
-            if (game.serverStatus == GameServerStatus.SERVER_UPDATE ||
-                game.serverStatus == GameServerStatus.SERVER_ERROR ||
-                game.serverStatus == GameServerStatus.OFFLINE ||
-                !game.isActive
-            ) {
-                _gameServerNotice.value = GameNoticeInfo(game, game.serverStatus)
-                return
-            }
+        // 1. SUPER ACE - Full Interactive Playable Game (Preserved exactly as requested)
+        if (gameId == "super_ace") {
+            _activeModalGame.value = "super_ace"
+            return
         }
 
+        // 2. SPRIBE AVIATOR - Full Interactive Playable Game (Preserved exactly as requested)
         if (gameId == "aviator_crash") {
             if (!_userProfile.value.isLoggedIn) {
                 showToast(
@@ -245,45 +245,88 @@ class SnxViewModel(application: Application) : AndroidViewModel(application) {
             return
         }
 
-        if (gameId == "lucky_wheel") {
-            if (!_userProfile.value.isLoggedIn) {
-                showToast(
-                    if (_language.value == AppLanguage.BN)
-                        "আপনার একাউন্ট খোলা হয় নাই, দয়া করে একাউন্ট খুলুন তারপর প্রবেশ করতে পারবেন"
-                    else
-                        "Account not created. Please register/login to spin the wheel"
-                )
-                openAuthModal(1)
-                return
+        // 3. ALL OTHER GAMES: As requested by user, only Super Ace & Spribe Aviator open.
+        // All other games display professional reasons:
+        // SERVER ERROR, SERVER MAINTENANCE, SERVER UPGRADE, SERVER OF, or NETWORK CONNECTION ERROR (with loading simulation).
+        val game = _dynamicGames.value.firstOrNull { it.id == gameId }
+            ?: allGames.firstOrNull { it.id == gameId }
+            ?: createDynamicGameItem(gameId)
+
+        val effectiveStatus = when (game.serverStatus) {
+            GameServerStatus.SERVER_ERROR,
+            GameServerStatus.SERVER_MAINTENANCE,
+            GameServerStatus.SERVER_UPGRADE,
+            GameServerStatus.SERVER_OFF,
+            GameServerStatus.SERVER_UPDATE,
+            GameServerStatus.OFFLINE,
+            GameServerStatus.NETWORK_ERROR -> game.serverStatus
+            else -> {
+                // Realistic status distribution across games
+                when (gameId) {
+                    "athena_rising", "wild_athena_rising", "dragon_tiger", "gold_rush_slot", "lucky_wheel",
+                    "slot_fortune_gems", "slot_fortune_gems_3", "fortune_garuda", "slot_lucky_neko" -> GameServerStatus.NETWORK_ERROR
+
+                    "flyx", "cricket_live", "dice_roll", "sports_9wickets", "sports_lucky", "sports_saba",
+                    "boxing_king", "live_evolution_gaming" ->
+                        GameServerStatus.SERVER_MAINTENANCE
+
+                    "pirate_legends", "roulette_pro", "slot_clover_coins", "slot_wild_bandito", "slot_fortuna_garuda",
+                    "mighty_sevens", "slot_mighty_sevens" ->
+                        GameServerStatus.SERVER_UPGRADE
+
+                    "slot_777", "slot_777_rocket", "fruit_frenzy", "crazy_time", "slot_lucky_jaguar", "slot_poker_win", "slot_money_coming" ->
+                        GameServerStatus.SERVER_OFF
+
+                    else -> GameServerStatus.SERVER_ERROR // slot_anubis_wrath, wild_bounty_showdown, teen_patti, fish_hunter, live dealers, etc.
+                }
             }
-            _activeModalGame.value = "lucky_wheel"
+        }
+
+        if (effectiveStatus == GameServerStatus.NETWORK_ERROR) {
+            // Opens game loading view, then shows realistic network connection error dialog
+            _gameNetworkErrorItem.value = game.copy(serverStatus = effectiveStatus)
             return
         }
 
-        if (gameId == "super_ace") {
-            _activeModalGame.value = "super_ace"
-            return
-        }
+        // Displays professional server failure reason modal dialog
+        _gameServerNotice.value = GameNoticeInfo(game.copy(serverStatus = effectiveStatus), effectiveStatus)
+    }
 
-        if (!_userProfile.value.isLoggedIn) {
-            showToast(
-                if (_language.value == AppLanguage.BN)
-                    "আপনার একাউন্ট খোলা হয় নাই, দয়া করে একাউন্ট খুলুন তারপর প্রবেশ করতে পারবেন"
-                else
-                    "Your account has not been created yet. Please register or login to proceed"
-            )
-            openAuthModal(1)
-            return
+    private fun createDynamicGameItem(gameId: String): GameItem {
+        val (titleBn, titleEn, emoji) = when (gameId) {
+            "fortune_garuda" -> Triple("ফরচুন গারুদা ৫০০", "Fortune Garuda 500", "🦅")
+            "boxing_king" -> Triple("বক্সিং কিং", "Boxing King", "🥊")
+            "mighty_sevens", "slot_mighty_sevens" -> Triple("মাইটি সেভেনস ২৫০০০x", "Mighty Sevens 25000x", "⭐")
+            "slot_anubis_wrath" -> Triple("আনুবিস র্যাথ", "Anubis Wrath", "⚱️")
+            "slot_fortune_gems_3" -> Triple("ফরচুন জেমস ৩", "Fortune Gems 3", "💎")
+            "slot_777_rocket" -> Triple("৭৭৭ রকেট স্লট", "777 Rocket", "🚀")
+            "live_evolution_gaming", "crazy_time" -> Triple("ক্রেজি টাইম লাইভ", "Crazy Time Live", "🎡")
+            else -> {
+                val title = gameId.replace("_", " ").split(" ")
+                    .joinToString(" ") { word -> word.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() } }
+                val em = when {
+                    gameId.contains("cricket") || gameId.contains("sports") -> "🏏"
+                    gameId.contains("dealer") || gameId.contains("casino") -> "🎰"
+                    gameId.contains("pirate") -> "🏴‍☠️"
+                    gameId.contains("bounty") -> "🤠"
+                    gameId.contains("fly") -> "🚀"
+                    else -> "🎮"
+                }
+                Triple(title, title, em)
+            }
         }
-
-        // As requested by user: Clicking any game will NOT enter the game, it simply indicates that there is no balance
-        _pendingGameId.value = gameId
-        _isInsufficientBalanceModalOpen.value = true
-        showToast(
-            if (_language.value == AppLanguage.BN)
-                "আপনার একাউন্ট এ ব্যালেন্স নেই! গেম খেলতে অনুগ্রহ করে ডিপোজিট করুন।"
-            else
-                "Your account has no balance! Please deposit to play."
+        val category = when {
+            gameId.startsWith("slot") -> GameCategory.SLOTS
+            gameId.startsWith("sports") -> GameCategory.SPORTS
+            gameId.startsWith("live") || gameId.contains("dealer") -> GameCategory.CASINO
+            else -> GameCategory.HOT
+        }
+        return GameItem(
+            id = gameId,
+            titleBn = titleBn,
+            titleEn = titleEn,
+            category = category,
+            iconEmoji = emoji
         )
     }
 

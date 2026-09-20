@@ -308,13 +308,18 @@ fun HomeScreen(
                 },
                 onOpenSuperAce = {
                     onOpenGame("super_ace")
+                },
+                onOpenGame = { gameId ->
+                    onOpenGame(gameId)
                 }
             )
         }
 
         // LIVE CASINO, SPORTS & SLOTS Section (From User Screenshots)
         item(span = { GridItemSpan(2) }) {
-            com.example.ui.components.CasinoSectionsComponent()
+            com.example.ui.components.CasinoSectionsComponent(
+                onOpenGame = { gameId -> onOpenGame(gameId) }
+            )
         }
 
         // Recent Big Winners Ticker

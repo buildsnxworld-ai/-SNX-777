@@ -146,13 +146,18 @@ fun GamesScreen(
             },
             onOpenSuperAce = {
                 onOpenGame("super_ace")
+            },
+            onOpenGame = { gameId ->
+                onOpenGame(gameId)
             }
         )
 
         Spacer(modifier = Modifier.height(14.dp))
 
         // LIVE CASINO, SPORTS & SLOTS Section (From User Screenshots)
-        com.example.ui.components.CasinoSectionsComponent()
+        com.example.ui.components.CasinoSectionsComponent(
+            onOpenGame = { gameId -> onOpenGame(gameId) }
+        )
 
         Spacer(modifier = Modifier.height(20.dp))
     }
