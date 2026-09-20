@@ -3,6 +3,7 @@ package com.example.ui.components
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -22,11 +23,14 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.R
 
 /**
  * High-fidelity Casino Sections matching the user's uploaded screenshots:
@@ -75,11 +79,8 @@ fun CasinoSectionsComponent(
                 LiveDealerCard(
                     brand = "PLAYTECH",
                     sub = "LIVE CASINO",
-                    hairColor = Color(0xFF111111),
-                    dressColor = Color(0xFF881337), // Crimson red dress with bindi
-                    jewelryColor = Color(0xFFFFE082),
-                    hasBindi = true,
-                    bgGradients = listOf(Color(0xFF581C2E), Color(0xFF240A12), Color(0xFF03191D))
+                    imageResId = R.drawable.img_dealer_foreign_1,
+                    badgeText = "LIVE VIP"
                 )
             }
             Box(
@@ -90,11 +91,8 @@ fun CasinoSectionsComponent(
                 LiveDealerCard(
                     brand = "W CASINO",
                     sub = "LIVE CASINO",
-                    hairColor = Color(0xFF18100C),
-                    dressColor = Color(0xFF0284C7), // Royal blue saree with jewelry
-                    jewelryColor = Color(0xFFFFD700),
-                    hasMaangTikka = true,
-                    bgGradients = listOf(Color(0xFF0C4A6E), Color(0xFF08273B), Color(0xFF03191D))
+                    imageResId = R.drawable.img_dealer_foreign_2,
+                    badgeText = "DEALER HD"
                 )
             }
         }
@@ -102,7 +100,7 @@ fun CasinoSectionsComponent(
         Spacer(modifier = Modifier.height(18.dp))
 
         // ==========================================
-        // 2. SPORTS SECTION (Cricket Players with Bat & Helmet)
+        // 2. SPORTS SECTION (Realistic Cricket Players)
         // ==========================================
         SectionHeaderBar(
             title = "SPORTS",
@@ -115,57 +113,51 @@ fun CasinoSectionsComponent(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Player 1: Indian Team Blue & Orange Jersey with Helmet & CEAT bat (Rohit Sharma style)
+            // Player 1: Shakib Al Hasan (Real photo in Bangladesh National Team jersey)
             Box(
                 modifier = Modifier
                     .weight(1f)
                     .clickable(enabled = onOpenGame != null) { onOpenGame?.invoke("sports_9wickets") }
             ) {
                 CricketPlayerCard(
-                    name = "9WICKETS",
-                    sub = "SPORTS",
-                    jerseyColor = Color(0xFF0284C7), // Team Blue
-                    shoulderColor = Color(0xFFFF6D00), // Orange shoulders
-                    helmetColor = Color(0xFF0C4A6E), // Dark Navy Helmet
-                    batBrand = "CEAT",
-                    poseType = 1,
-                    bgGradient = listOf(Color(0xFF004D40), Color(0xFF002720), Color(0xFF021316))
+                    brand = "9WICKETS",
+                    playerName = "SHAKIB AL HASAN",
+                    jerseyTag = "BANGLADESH #75",
+                    imageResId = R.drawable.img_cricket_shakib,
+                    badgeColor = Color(0xFF15803D),
+                    accentColor = Color(0xFF22C55E)
                 )
             }
 
-            // Player 2: Blue Jersey Striking Bat upward (Virat / Hardik style)
+            // Player 2: Virat Kohli (Real photo in Team Blue jersey)
             Box(
                 modifier = Modifier
                     .weight(1f)
                     .clickable(enabled = onOpenGame != null) { onOpenGame?.invoke("sports_lucky") }
             ) {
                 CricketPlayerCard(
-                    name = "LUCKY SPORTS",
-                    sub = "SPORTS",
-                    jerseyColor = Color(0xFF1D4ED8), // Royal blue
-                    shoulderColor = Color(0xFFFF7043),
-                    helmetColor = Color(0xFF1E3A8A),
-                    batBrand = "MRF",
-                    poseType = 2,
-                    bgGradient = listOf(Color(0xFF01579B), Color(0xFF002744), Color(0xFF021316))
+                    brand = "LUCKY SPORTS",
+                    playerName = "VIRAT KOHLI",
+                    jerseyTag = "INDIA #18",
+                    imageResId = R.drawable.img_cricket_virat,
+                    badgeColor = Color(0xFF1D4ED8),
+                    accentColor = Color(0xFF38BDF8)
                 )
             }
 
-            // Player 3: KKR Purple Jersey with Gold & Bat held up (Rinku / Russell style)
+            // Player 3: Rohit Sharma (Real photo in World Cup champion jersey)
             Box(
                 modifier = Modifier
                     .weight(1f)
                     .clickable(enabled = onOpenGame != null) { onOpenGame?.invoke("sports_saba") }
             ) {
                 CricketPlayerCard(
-                    name = "SABA",
-                    sub = "SPORTS",
-                    jerseyColor = Color(0xFF581C87), // KKR Purple
-                    shoulderColor = Color(0xFFFBBF24), // Gold accents
-                    helmetColor = Color(0xFF3B0764),
-                    batBrand = "TON",
-                    poseType = 3,
-                    bgGradient = listOf(Color(0xFF4A148C), Color(0xFF1E053A), Color(0xFF021316))
+                    brand = "SABA SPORTS",
+                    playerName = "ROHIT SHARMA",
+                    jerseyTag = "CAPTAIN #45",
+                    imageResId = R.drawable.img_cricket_rohit,
+                    badgeColor = Color(0xFFB45309),
+                    accentColor = Color(0xFFFBBF24)
                 )
             }
         }
@@ -173,7 +165,7 @@ fun CasinoSectionsComponent(
         Spacer(modifier = Modifier.height(20.dp))
 
         // ==========================================
-        // 3. SLOTS SECTION (From Screenshot 2)
+        // 3. SLOTS & TABLE GAMES SECTION (3 Rows x 3 Games = 9 Games)
         // ==========================================
         SectionHeaderBar(
             title = "SLOTS",
@@ -187,23 +179,17 @@ fun CasinoSectionsComponent(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Box(
-                modifier = Modifier.weight(1f)
-            ) {
+            Box(modifier = Modifier.weight(1f)) {
                 AnubisWrathCard(
                     onPlay = { onOpenGame?.invoke("slot_anubis_wrath") }
                 )
             }
-            Box(
-                modifier = Modifier.weight(1f)
-            ) {
+            Box(modifier = Modifier.weight(1f)) {
                 FortuneGems3Card(
                     onPlay = { onOpenGame?.invoke("slot_fortune_gems_3") }
                 )
             }
-            Box(
-                modifier = Modifier.weight(1f)
-            ) {
+            Box(modifier = Modifier.weight(1f)) {
                 Rocket777Card(
                     onPlay = { onOpenGame?.invoke("slot_777_rocket") }
                 )
@@ -212,128 +198,48 @@ fun CasinoSectionsComponent(
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // Row 2: Wild Bandito (25,000x), Lucky Neko, Fortune Garuda 500
+        // Row 2: Fortune Garuda 500, Ludo Quick (JILI), Andar Bahar (Kingmaker)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .clickable(enabled = onOpenGame != null) { onOpenGame?.invoke("slot_wild_bandito") }
-            ) {
-                SlotGameCardArt(
-                    title = "WILD",
-                    subtitle = "BANDITO",
-                    provider = "PG SOFT",
-                    multiplierBadge = "25,000x",
-                    theme = SlotTheme.BANDITO_SKELETON,
-                    gradient = listOf(Color(0xFF9333EA), Color(0xFF581C87), Color(0xFF1E053A))
-                )
-            }
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .clickable(enabled = onOpenGame != null) { onOpenGame?.invoke("slot_lucky_neko") }
-            ) {
-                SlotGameCardArt(
-                    title = "LUCKY",
-                    subtitle = "NEKO",
-                    provider = "PG SOFT",
-                    theme = SlotTheme.LUCKY_NEKO_CAT,
-                    gradient = listOf(Color(0xFFDB2777), Color(0xFF831843), Color(0xFF240713))
-                )
-            }
-            Box(
-                modifier = Modifier.weight(1f)
-            ) {
+            Box(modifier = Modifier.weight(1f)) {
                 FortuneGarudaCard(
                     onPlay = { onOpenGame?.invoke("fortune_garuda") }
                 )
             }
-        }
-
-        Spacer(modifier = Modifier.height(10.dp))
-
-        // Row 3: FlyX Cash Turbo, Lucky Jaguar, FC Poker Win! (25000X)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .clickable(enabled = onOpenGame != null) { onOpenGame?.invoke("flyx") }
-            ) {
-                SlotGameCardArt(
-                    title = "FlyX",
-                    subtitle = "CASH TURBO",
-                    provider = "Microgaming",
-                    theme = SlotTheme.FLYX_ROCKET_HERO,
-                    gradient = listOf(Color(0xFFC026D3), Color(0xFF701A75), Color(0xFF260527))
+            Box(modifier = Modifier.weight(1f)) {
+                LudoQuickCard(
+                    onPlay = { onOpenGame?.invoke("ludo_quick") }
                 )
             }
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .clickable(enabled = onOpenGame != null) { onOpenGame?.invoke("slot_lucky_jaguar") }
-            ) {
-                SlotGameCardArt(
-                    title = "LUCKY",
-                    subtitle = "JAGUAR",
-                    provider = "JILI",
-                    theme = SlotTheme.LUCKY_JAGUAR_WARRIOR,
-                    gradient = listOf(Color(0xFF0D9488), Color(0xFF115E59), Color(0xFF042F2E))
-                )
-            }
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .clickable(enabled = onOpenGame != null) { onOpenGame?.invoke("slot_poker_win") }
-            ) {
-                SlotGameCardArt(
-                    title = "POKER",
-                    subtitle = "WIN!",
-                    provider = "FA CHAI",
-                    multiplierBadge = "25000X",
-                    theme = SlotTheme.JOKER_POKER_WIN,
-                    gradient = listOf(Color(0xFFE11D48), Color(0xFF9F1239), Color(0xFF330517))
+            Box(modifier = Modifier.weight(1f)) {
+                AndarBaharCard(
+                    onPlay = { onOpenGame?.invoke("andar_bahar") }
                 )
             }
         }
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // Row 4: Money Coming, 3 Lucky Rainbow, Mighty Sevens (25000X)
+        // Row 3: 32 Cards (Kingmaker), Thai Hi-Lo (Kingmaker), Thai Fish Prawn Crab (Kingmaker)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .clickable(enabled = onOpenGame != null) { onOpenGame?.invoke("slot_money_coming") }
-            ) {
-                SlotGameCardArt(
-                    title = "MONEY",
-                    subtitle = "COMING",
-                    provider = "JILI",
-                    theme = SlotTheme.MONEY_CASH_NOTES,
-                    gradient = listOf(Color(0xFF059669), Color(0xFF064E3B), Color(0xFF022C22))
+            Box(modifier = Modifier.weight(1f)) {
+                Cards32Card(
+                    onPlay = { onOpenGame?.invoke("32_cards") }
                 )
             }
-            Box(
-                modifier = Modifier.weight(1f)
-            ) {
-                BoxingKingCard(
-                    onPlay = { onOpenGame?.invoke("boxing_king") }
+            Box(modifier = Modifier.weight(1f)) {
+                ThaiHiLoCard(
+                    onPlay = { onOpenGame?.invoke("thai_hi_lo") }
                 )
             }
-            Box(
-                modifier = Modifier.weight(1f)
-            ) {
-                MightySevensCard(
-                    onPlay = { onOpenGame?.invoke("slot_mighty_sevens") }
+            Box(modifier = Modifier.weight(1f)) {
+                ThaiFishPrawnCrabCard(
+                    onPlay = { onOpenGame?.invoke("thai_fish_prawn_crab") }
                 )
             }
         }
@@ -398,197 +304,89 @@ private fun SectionHeaderBar(
  * Custom High-Resolution Graphic: Live Casino Female Dealer Model
  * Matching the real Evolution/Playtech casino dealer portrait from the user's screenshot.
  */
+/**
+ * Realistic Live Casino Foreign Dealer Model Card
+ * Displays high-definition realistic foreign dealer photo with VIP casino overlays.
+ */
 @Composable
 private fun LiveDealerCard(
     brand: String,
     sub: String,
-    hairColor: Color,
-    dressColor: Color,
-    jewelryColor: Color,
-    hasBindi: Boolean = false,
-    hasMaangTikka: Boolean = false,
-    bgGradients: List<Color>
+    imageResId: Int,
+    badgeText: String = "LIVE VIP"
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .height(162.dp),
         shape = RoundedCornerShape(14.dp),
-        border = BorderStroke(1.dp, Color(0xFF16474E))
+        border = BorderStroke(1.2.dp, Color(0xFF00F5B8).copy(alpha = 0.6f)),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF021316))
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Brush.verticalGradient(bgGradients))
-        ) {
-            // Background studio light bokeh
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                drawCircle(
-                    color = Color.White.copy(alpha = 0.12f),
-                    radius = size.width * 0.45f,
-                    center = Offset(size.width * 0.5f, size.height * 0.45f)
-                )
-                // Sparkle dots
-                drawCircle(Color.White.copy(alpha = 0.7f), radius = 2.5f, center = Offset(size.width * 0.2f, size.height * 0.25f))
-                drawCircle(Color.White.copy(alpha = 0.8f), radius = 3f, center = Offset(size.width * 0.82f, size.height * 0.28f))
-                drawCircle(Color.White.copy(alpha = 0.6f), radius = 2f, center = Offset(size.width * 0.15f, size.height * 0.55f))
-            }
+        Box(modifier = Modifier.fillMaxSize()) {
+            // Real Dealer Model Photo
+            Image(
+                painter = painterResource(id = imageResId),
+                contentDescription = brand,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
 
-            // Dealer portrait vector composite
+            // Ambient dark vignette scrim
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(bottom = 26.dp),
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color(0x33000000),
+                                Color.Transparent,
+                                Color(0x66000000),
+                                Color(0xF0021316)
+                            )
+                        )
+                    )
+            )
+
+            // Top-left "LIVE VIP" badge with red dot
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(5.dp),
+                shape = RoundedCornerShape(4.dp),
+                color = Color(0xDDDC2626)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(5.dp)
+                            .clip(CircleShape)
+                            .background(Color.White)
+                    )
+                    Spacer(modifier = Modifier.width(3.dp))
+                    Text(
+                        text = badgeText,
+                        color = Color.White,
+                        fontSize = 7.5.sp,
+                        fontWeight = FontWeight.Black
+                    )
+                }
+            }
+
+            // Top-right Casino chip / heart icon
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(5.dp)
+                    .size(18.dp)
+                    .clip(CircleShape)
+                    .background(Color(0x88000000)),
                 contentAlignment = Alignment.Center
             ) {
-                Canvas(
-                    modifier = Modifier
-                        .size(92.dp, 108.dp)
-                ) {
-                    val w = size.width
-                    val h = size.height
-
-                    // 1. Long Dark Silky Hair Behind
-                    drawOval(
-                        color = hairColor,
-                        topLeft = Offset(w * 0.12f, h * 0.12f),
-                        size = androidx.compose.ui.geometry.Size(w * 0.76f, h * 0.72f)
-                    )
-
-                    // 2. Neck & Shoulders (Skin Tone)
-                    val skinTone = Color(0xFFF6C8A6)
-                    val neckPath = Path().apply {
-                        moveTo(w * 0.38f, h * 0.42f)
-                        lineTo(w * 0.62f, h * 0.42f)
-                        lineTo(w * 0.75f, h * 0.75f)
-                        lineTo(w * 0.25f, h * 0.75f)
-                        close()
-                    }
-                    drawPath(neckPath, skinTone)
-
-                    // 3. Gorgeous Dress (Deep V-neck / Sleeveless Corset)
-                    val dressPath = Path().apply {
-                        moveTo(w * 0.15f, h * 0.68f)
-                        lineTo(w * 0.35f, h * 0.58f)
-                        lineTo(w * 0.5f, h * 0.70f) // cleavage V
-                        lineTo(w * 0.65f, h * 0.58f)
-                        lineTo(w * 0.85f, h * 0.68f)
-                        lineTo(w * 0.90f, h * 1.0f)
-                        lineTo(w * 0.10f, h * 1.0f)
-                        close()
-                    }
-                    drawPath(dressPath, dressColor)
-
-                    // Gold embroidery on dress
-                    drawLine(
-                        color = jewelryColor,
-                        start = Offset(w * 0.35f, h * 0.58f),
-                        end = Offset(w * 0.5f, h * 0.70f),
-                        strokeWidth = 3f
-                    )
-                    drawLine(
-                        color = jewelryColor,
-                        start = Offset(w * 0.65f, h * 0.58f),
-                        end = Offset(w * 0.5f, h * 0.70f),
-                        strokeWidth = 3f
-                    )
-
-                    // 4. Gold Necklace
-                    drawArc(
-                        color = jewelryColor,
-                        startAngle = 20f,
-                        sweepAngle = 140f,
-                        useCenter = false,
-                        topLeft = Offset(w * 0.34f, h * 0.44f),
-                        size = androidx.compose.ui.geometry.Size(w * 0.32f, h * 0.16f),
-                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 3.5f)
-                    )
-                    // Necklace diamond pendant
-                    drawCircle(
-                        color = Color.White,
-                        radius = 3.5f,
-                        center = Offset(w * 0.5f, h * 0.56f)
-                    )
-
-                    // 5. Face Oval
-                    drawOval(
-                        color = skinTone,
-                        topLeft = Offset(w * 0.28f, h * 0.14f),
-                        size = androidx.compose.ui.geometry.Size(w * 0.44f, h * 0.44f)
-                    )
-
-                    // 6. Hair Front styling / Locks
-                    val leftLock = Path().apply {
-                        moveTo(w * 0.28f, h * 0.16f)
-                        cubicTo(w * 0.20f, h * 0.28f, w * 0.18f, h * 0.45f, w * 0.22f, h * 0.62f)
-                        lineTo(w * 0.30f, h * 0.58f)
-                        cubicTo(w * 0.26f, h * 0.42f, w * 0.28f, h * 0.28f, w * 0.35f, h * 0.20f)
-                        close()
-                    }
-                    drawPath(leftLock, hairColor)
-
-                    val rightLock = Path().apply {
-                        moveTo(w * 0.72f, h * 0.16f)
-                        cubicTo(w * 0.80f, h * 0.28f, w * 0.82f, h * 0.45f, w * 0.78f, h * 0.62f)
-                        lineTo(w * 0.70f, h * 0.58f)
-                        cubicTo(w * 0.74f, h * 0.42f, w * 0.72f, h * 0.28f, w * 0.65f, h * 0.20f)
-                        close()
-                    }
-                    drawPath(rightLock, hairColor)
-
-                    // 7. Eyes & Eyebrows
-                    drawArc(
-                        color = Color(0xFF261811),
-                        startAngle = 180f,
-                        sweepAngle = 180f,
-                        useCenter = false,
-                        topLeft = Offset(w * 0.35f, h * 0.28f),
-                        size = androidx.compose.ui.geometry.Size(w * 0.10f, h * 0.05f),
-                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.5f)
-                    )
-                    drawArc(
-                        color = Color(0xFF261811),
-                        startAngle = 180f,
-                        sweepAngle = 180f,
-                        useCenter = false,
-                        topLeft = Offset(w * 0.55f, h * 0.28f),
-                        size = androidx.compose.ui.geometry.Size(w * 0.10f, h * 0.05f),
-                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.5f)
-                    )
-
-                    // 8. Glamorous Red Lips
-                    drawOval(
-                        color = Color(0xFFDC2626),
-                        topLeft = Offset(w * 0.44f, h * 0.46f),
-                        size = androidx.compose.ui.geometry.Size(w * 0.12f, h * 0.05f)
-                    )
-
-                    // 9. Bindi or Maang Tikka if enabled
-                    if (hasBindi) {
-                        drawCircle(
-                            color = Color(0xFF991B1B),
-                            radius = 2.5f,
-                            center = Offset(w * 0.5f, h * 0.25f)
-                        )
-                    }
-                    if (hasMaangTikka) {
-                        drawLine(
-                            color = jewelryColor,
-                            start = Offset(w * 0.5f, h * 0.14f),
-                            end = Offset(w * 0.5f, h * 0.24f),
-                            strokeWidth = 2f
-                        )
-                        drawCircle(
-                            color = jewelryColor,
-                            radius = 3.5f,
-                            center = Offset(w * 0.5f, h * 0.24f)
-                        )
-                    }
-
-                    // Gold Earrings
-                    drawCircle(color = jewelryColor, radius = 2.5f, center = Offset(w * 0.27f, h * 0.38f))
-                    drawCircle(color = jewelryColor, radius = 2.5f, center = Offset(w * 0.73f, h * 0.38f))
-                }
+                Text(text = "🤍", fontSize = 9.sp)
             }
 
             // Bottom Brand Name Overlay
@@ -596,22 +394,17 @@ private fun LiveDealerCard(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .background(
-                        Brush.verticalGradient(
-                            listOf(Color.Transparent, Color(0xCC001217), Color(0xF2000A0D))
-                        )
-                    )
-                    .padding(horizontal = 4.dp, vertical = 6.dp),
+                    .padding(horizontal = 4.dp, vertical = 5.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
                     text = brand,
-                    color = Color(0xFFFFB74D),
-                    fontSize = 9.sp,
+                    color = Color(0xFFFFD54F),
+                    fontSize = 9.5.sp,
                     fontWeight = FontWeight.Black,
                     textAlign = TextAlign.Center,
-                    maxLines = 2,
-                    lineHeight = 10.sp
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     text = sub,
@@ -626,225 +419,107 @@ private fun LiveDealerCard(
 }
 
 /**
- * Custom High-Resolution Graphic: Real Cricket Batsman with Team Jersey, Bat & Helmet
- * Matching 9Wickets, Lucky Sports and Saba sports cards from user's screenshots.
+ * Realistic Sports Card: Real Cricket Stars (Shakib Al Hasan, Virat Kohli, Rohit Sharma)
+ * Displays realistic cricket photo with high-contrast stadium gradient, team badge & clean name tag.
  */
 @Composable
 private fun CricketPlayerCard(
-    name: String,
-    sub: String,
-    jerseyColor: Color,
-    shoulderColor: Color,
-    helmetColor: Color,
-    batBrand: String,
-    poseType: Int,
-    bgGradient: List<Color>
+    brand: String,
+    playerName: String,
+    jerseyTag: String,
+    imageResId: Int,
+    badgeColor: Color,
+    accentColor: Color = Color(0xFF00F5B8)
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .height(162.dp),
         shape = RoundedCornerShape(14.dp),
-        border = BorderStroke(1.dp, Color(0xFF16474E))
+        border = BorderStroke(1.2.dp, accentColor.copy(alpha = 0.6f)),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF021316))
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Brush.verticalGradient(bgGradient))
-        ) {
-            // Stadium Lights in Background
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                drawCircle(Color(0xFF80CBC4).copy(alpha = 0.15f), radius = size.width * 0.5f, center = Offset(size.width * 0.5f, size.height * 0.35f))
-                // Sparkles
-                drawCircle(Color.White.copy(alpha = 0.9f), radius = 2.5f, center = Offset(size.width * 0.18f, size.height * 0.2f))
-                drawCircle(Color.White.copy(alpha = 0.8f), radius = 2f, center = Offset(size.width * 0.82f, size.height * 0.22f))
-                drawCircle(Color.White.copy(alpha = 0.7f), radius = 3f, center = Offset(size.width * 0.75f, size.height * 0.45f))
-            }
+        Box(modifier = Modifier.fillMaxSize()) {
+            // Real Cricket Player Photo
+            Image(
+                painter = painterResource(id = imageResId),
+                contentDescription = playerName,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
 
-            // Cricket Batsman Vector
+            // Stadium lighting & bottom vignette overlay
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(bottom = 26.dp),
-                contentAlignment = Alignment.Center
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color(0x33000000),
+                                Color.Transparent,
+                                Color(0x66000000),
+                                Color(0xF0021316)
+                            )
+                        )
+                    )
+            )
+
+            // Top Badge (Team / Country / Jersey Number)
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(5.dp),
+                shape = RoundedCornerShape(4.dp),
+                color = badgeColor
             ) {
-                Canvas(
-                    modifier = Modifier.size(95.dp, 110.dp)
-                ) {
-                    val w = size.width
-                    val h = size.height
-                    val skin = Color(0xFFE0A97E)
-
-                    // 1. Cricket Bat (Rendered angled based on pose)
-                    if (poseType == 1) {
-                        // Horizontal CEAT bat held in front (Rohit Sharma style)
-                        val batPath = Path().apply {
-                            moveTo(w * 0.15f, h * 0.78f)
-                            lineTo(w * 0.85f, h * 0.65f)
-                            lineTo(w * 0.88f, h * 0.75f)
-                            lineTo(w * 0.18f, h * 0.88f)
-                            close()
-                        }
-                        drawPath(batPath, Color(0xFFE5D5B8)) // English Willow wood
-                        // Bat handle
-                        drawLine(
-                            color = Color(0xFF263238),
-                            start = Offset(w * 0.16f, h * 0.82f),
-                            end = Offset(w * 0.05f, h * 0.86f),
-                            strokeWidth = 6f
-                        )
-                        // Bat Grip / Label line
-                        drawLine(
-                            color = Color(0xFF0284C7),
-                            start = Offset(w * 0.35f, h * 0.74f),
-                            end = Offset(w * 0.65f, h * 0.68f),
-                            strokeWidth = 5f
-                        )
-                    } else if (poseType == 2) {
-                        // Bat raised up high backward (Batting stroke)
-                        val batPath = Path().apply {
-                            moveTo(w * 0.18f, h * 0.12f)
-                            lineTo(w * 0.60f, h * 0.30f)
-                            lineTo(w * 0.58f, h * 0.38f)
-                            lineTo(w * 0.15f, h * 0.20f)
-                            close()
-                        }
-                        drawPath(batPath, Color(0xFFF5E6CA))
-                        // Handle held by glove
-                        drawLine(
-                            color = Color(0xFFE53935),
-                            start = Offset(w * 0.58f, h * 0.34f),
-                            end = Offset(w * 0.68f, h * 0.38f),
-                            strokeWidth = 6f
-                        )
-                    } else {
-                        // Bat raised vertically in celebration / stance (TON / KKR style)
-                        val batPath = Path().apply {
-                            moveTo(w * 0.22f, h * 0.10f)
-                            lineTo(w * 0.35f, h * 0.12f)
-                            lineTo(w * 0.40f, h * 0.55f)
-                            lineTo(w * 0.27f, h * 0.53f)
-                            close()
-                        }
-                        drawPath(batPath, Color(0xFFF5E6CA))
-                        // Purple/Gold sticker
-                        drawRect(
-                            color = Color(0xFF7E22CE),
-                            topLeft = Offset(w * 0.26f, h * 0.25f),
-                            size = androidx.compose.ui.geometry.Size(w * 0.11f, h * 0.14f)
-                        )
-                    }
-
-                    // 2. Jersey Torso (Muscular Athlete Body)
-                    val bodyPath = Path().apply {
-                        moveTo(w * 0.28f, h * 0.48f)
-                        lineTo(w * 0.72f, h * 0.48f)
-                        lineTo(w * 0.80f, h * 0.95f)
-                        lineTo(w * 0.20f, h * 0.95f)
-                        close()
-                    }
-                    drawPath(bodyPath, jerseyColor)
-
-                    // 3. Orange / Gold Shoulder Straps & Sleeves
-                    drawArc(
-                        color = shoulderColor,
-                        startAngle = 180f,
-                        sweepAngle = 180f,
-                        useCenter = true,
-                        topLeft = Offset(w * 0.18f, h * 0.46f),
-                        size = androidx.compose.ui.geometry.Size(w * 0.22f, h * 0.24f)
-                    )
-                    drawArc(
-                        color = shoulderColor,
-                        startAngle = 180f,
-                        sweepAngle = 180f,
-                        useCenter = true,
-                        topLeft = Offset(w * 0.60f, h * 0.46f),
-                        size = androidx.compose.ui.geometry.Size(w * 0.22f, h * 0.24f)
-                    )
-
-                    // "INDIA" or Jersey Front Stripe
-                    drawLine(
-                        color = Color.White.copy(alpha = 0.8f),
-                        start = Offset(w * 0.35f, h * 0.65f),
-                        end = Offset(w * 0.65f, h * 0.65f),
-                        strokeWidth = 3f
-                    )
-
-                    // 4. Muscular Bare Arms (Tanned Skin)
-                    drawOval(color = skin, topLeft = Offset(w * 0.14f, h * 0.56f), size = androidx.compose.ui.geometry.Size(w * 0.14f, h * 0.28f))
-                    drawOval(color = skin, topLeft = Offset(w * 0.72f, h * 0.56f), size = androidx.compose.ui.geometry.Size(w * 0.14f, h * 0.28f))
-
-                    // 5. White Batting Gloves
-                    drawCircle(color = Color.White, radius = 6.5f, center = Offset(w * 0.22f, h * 0.78f))
-                    drawCircle(color = Color.White, radius = 6.5f, center = Offset(w * 0.72f, h * 0.76f))
-
-                    // 6. Cricket Helmet & Face with Steel Grill
-                    // Helmet Dome
-                    drawOval(
-                        color = helmetColor,
-                        topLeft = Offset(w * 0.32f, h * 0.15f),
-                        size = androidx.compose.ui.geometry.Size(w * 0.36f, h * 0.32f)
-                    )
-                    // Helmet Visor Brim
-                    drawArc(
-                        color = Color(0xFF0F172A),
-                        startAngle = 10f,
-                        sweepAngle = 160f,
-                        useCenter = false,
-                        topLeft = Offset(w * 0.30f, h * 0.22f),
-                        size = androidx.compose.ui.geometry.Size(w * 0.40f, h * 0.16f),
-                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 4f)
-                    )
-                    // Steel Face Grill (Bars)
-                    val grillColor = Color(0xFFCFD8DC)
-                    drawLine(grillColor, Offset(w * 0.36f, h * 0.32f), Offset(w * 0.64f, h * 0.32f), strokeWidth = 2.5f)
-                    drawLine(grillColor, Offset(w * 0.38f, h * 0.37f), Offset(w * 0.62f, h * 0.37f), strokeWidth = 2.5f)
-                    drawLine(grillColor, Offset(w * 0.40f, h * 0.42f), Offset(w * 0.60f, h * 0.42f), strokeWidth = 2.5f)
-                    // Vertical Grill bars
-                    drawLine(grillColor, Offset(w * 0.45f, h * 0.30f), Offset(w * 0.45f, h * 0.44f), strokeWidth = 2f)
-                    drawLine(grillColor, Offset(w * 0.55f, h * 0.30f), Offset(w * 0.55f, h * 0.44f), strokeWidth = 2f)
-
-                    // Ears & Beard visible behind grill
-                    drawArc(
-                        color = Color(0xFF261811),
-                        startAngle = 0f,
-                        sweepAngle = 180f,
-                        useCenter = true,
-                        topLeft = Offset(w * 0.40f, h * 0.38f),
-                        size = androidx.compose.ui.geometry.Size(w * 0.20f, h * 0.08f)
-                    )
-                }
+                Text(
+                    text = jerseyTag,
+                    color = Color.White,
+                    fontSize = 7.5.sp,
+                    fontWeight = FontWeight.Black,
+                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                )
             }
 
-            // Batsman Name & Badge
+            // Top Right: Cricket ball icon
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(5.dp)
+                    .size(18.dp)
+                    .clip(CircleShape)
+                    .background(Color(0x88000000)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(text = "🏏", fontSize = 10.sp)
+            }
+
+            // Bottom Player Name & Brand Banner
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .background(
-                        Brush.verticalGradient(
-                            listOf(Color.Transparent, Color(0xCC001217), Color(0xF2000A0D))
-                        )
-                    )
-                    .padding(horizontal = 4.dp, vertical = 6.dp),
+                    .padding(horizontal = 4.dp, vertical = 5.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = name,
-                    color = Color(0xFFFFB74D),
-                    fontSize = 9.sp,
+                    text = brand,
+                    color = Color(0xFFFFD54F),
+                    fontSize = 9.5.sp,
                     fontWeight = FontWeight.Black,
                     textAlign = TextAlign.Center,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = sub,
-                    color = Color(0xFF80CBC4),
-                    fontSize = 7.5.sp,
+                    text = playerName,
+                    color = Color.White,
+                    fontSize = 8.sp,
                     fontWeight = FontWeight.Bold,
-                    letterSpacing = 0.5.sp
+                    letterSpacing = 0.3.sp,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
         }
