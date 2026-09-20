@@ -113,7 +113,7 @@ fun CasinoSectionsComponent(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Player 1: Shakib Al Hasan (Real photo in Bangladesh National Team jersey)
+            // Player 1: Batsman (Batting with helmet and bat in hand)
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -121,15 +121,16 @@ fun CasinoSectionsComponent(
             ) {
                 CricketPlayerCard(
                     brand = "9WICKETS",
-                    playerName = "SHAKIB AL HASAN",
-                    jerseyTag = "BANGLADESH #75",
-                    imageResId = R.drawable.img_cricket_shakib,
-                    badgeColor = Color(0xFF15803D),
-                    accentColor = Color(0xFF22C55E)
+                    playerName = "BATTING",
+                    jerseyTag = "BATSMAN",
+                    imageResId = R.drawable.img_cricket_batsman,
+                    badgeColor = Color(0xFF1D4ED8),
+                    accentColor = Color(0xFF38BDF8),
+                    actionEmoji = "🏏"
                 )
             }
 
-            // Player 2: Virat Kohli (Real photo in Team Blue jersey)
+            // Player 2: Fast Bowler (Bowling in dynamic delivery action)
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -137,15 +138,16 @@ fun CasinoSectionsComponent(
             ) {
                 CricketPlayerCard(
                     brand = "LUCKY SPORTS",
-                    playerName = "VIRAT KOHLI",
-                    jerseyTag = "INDIA #18",
-                    imageResId = R.drawable.img_cricket_virat,
-                    badgeColor = Color(0xFF1D4ED8),
-                    accentColor = Color(0xFF38BDF8)
+                    playerName = "BOWLING",
+                    jerseyTag = "BOWLER",
+                    imageResId = R.drawable.img_cricket_bowler,
+                    badgeColor = Color(0xFF15803D),
+                    accentColor = Color(0xFF22C55E),
+                    actionEmoji = "🔴"
                 )
             }
 
-            // Player 3: Rohit Sharma (Real photo in World Cup champion jersey)
+            // Player 3: Wicketkeeper (Crouched behind stumps with keeper gloves and pads)
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -153,11 +155,12 @@ fun CasinoSectionsComponent(
             ) {
                 CricketPlayerCard(
                     brand = "SABA SPORTS",
-                    playerName = "ROHIT SHARMA",
-                    jerseyTag = "CAPTAIN #45",
-                    imageResId = R.drawable.img_cricket_rohit,
+                    playerName = "WICKET KEEPER",
+                    jerseyTag = "KEEPER",
+                    imageResId = R.drawable.img_cricket_keeper,
                     badgeColor = Color(0xFFB45309),
-                    accentColor = Color(0xFFFBBF24)
+                    accentColor = Color(0xFFFBBF24),
+                    actionEmoji = "🧤"
                 )
             }
         }
@@ -429,7 +432,8 @@ private fun CricketPlayerCard(
     jerseyTag: String,
     imageResId: Int,
     badgeColor: Color,
-    accentColor: Color = Color(0xFF00F5B8)
+    accentColor: Color = Color(0xFF00F5B8),
+    actionEmoji: String = "🏏"
 ) {
     Card(
         modifier = Modifier
@@ -440,7 +444,7 @@ private fun CricketPlayerCard(
         colors = CardDefaults.cardColors(containerColor = Color(0xFF021316))
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            // Real Cricket Player Photo
+            // Real Cricket Player Photo (Batting / Bowling / Keeping)
             Image(
                 painter = painterResource(id = imageResId),
                 contentDescription = playerName,
@@ -464,7 +468,7 @@ private fun CricketPlayerCard(
                     )
             )
 
-            // Top Badge (Team / Country / Jersey Number)
+            // Top Badge (Role: BATSMAN / BOWLER / KEEPER)
             Surface(
                 modifier = Modifier
                     .align(Alignment.TopStart)
@@ -481,7 +485,7 @@ private fun CricketPlayerCard(
                 )
             }
 
-            // Top Right: Cricket ball icon
+            // Top Right: Role Action icon (Bat 🏏, Bowling ball 🔴, Keeper gloves 🧤)
             Box(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
@@ -491,7 +495,7 @@ private fun CricketPlayerCard(
                     .background(Color(0x88000000)),
                 contentAlignment = Alignment.Center
             ) {
-                Text(text = "🏏", fontSize = 10.sp)
+                Text(text = actionEmoji, fontSize = 10.sp)
             }
 
             // Bottom Player Name & Brand Banner
