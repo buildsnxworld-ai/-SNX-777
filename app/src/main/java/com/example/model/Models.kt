@@ -62,7 +62,8 @@ data class GameItem(
     val playersCount: Int = 1420,
     val imageUrl: String = "",
     val isActive: Boolean = true,
-    val serverStatus: GameServerStatus = GameServerStatus.ACTIVE
+    val serverStatus: GameServerStatus = GameServerStatus.ACTIVE,
+    val thumbnailFitMode: String = "CROP"
 )
 
 enum class PaymentMethod(val displayName: String, val colorHex: Long, val number: String) {
@@ -80,7 +81,8 @@ data class TransactionRecord(
     val status: TransactionStatus,
     val timeFormatted: String,
     val username: String = "",
-    val userPhone: String = ""
+    val userPhone: String = "",
+    val rejectReason: String = ""
 )
 
 enum class TransactionType(val bn: String, val en: String) {
@@ -91,7 +93,7 @@ enum class TransactionType(val bn: String, val en: String) {
 enum class TransactionStatus(val bn: String, val en: String, val colorHex: Long) {
     APPROVED("অনুমোদিত", "Approved", 0xFF00E676),
     PENDING("প্রক্রিয়াধীন", "Pending", 0xFFFFB300),
-    REJECTED("বাতিল", "Rejected", 0xFFFF5252)
+    REJECTED("রিজেক্ট", "Rejected", 0xFFFF5252)
 }
 
 data class CricketMatch(

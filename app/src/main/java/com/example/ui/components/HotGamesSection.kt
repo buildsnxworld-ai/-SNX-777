@@ -45,6 +45,7 @@ fun HotGamesSection(
     onOpenAviator: () -> Unit,
     onOpenSuperAce: (() -> Unit)? = null,
     onOpenGame: ((String) -> Unit)? = null,
+    games: List<com.example.model.GameItem> = emptyList(),
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -183,20 +184,26 @@ fun HotGamesSection(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // 3. Grid of 6 Games (3 columns x 2 rows)
+        // 3. Grid of 6 Games (3 columns x 2 rows) - Fully Dynamic with Admin Panel overrides
         // Row 1: Super Ace, Fortune Gems 3, FlyX
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Box(modifier = Modifier.weight(1f)) {
-                SuperAceCard(onPlay = onOpenSuperAce)
+                DynamicCasinoGameCard(gameId = "super_ace", games = games, onPlay = onOpenSuperAce) {
+                    SuperAceCard(onPlay = onOpenSuperAce)
+                }
             }
             Box(modifier = Modifier.weight(1f)) {
-                FortuneGems3Card(onPlay = { onOpenGame?.invoke("slot_fortune_gems_3") })
+                DynamicCasinoGameCard(gameId = "slot_fortune_gems_3", games = games, onPlay = { onOpenGame?.invoke("slot_fortune_gems_3") }) {
+                    FortuneGems3Card(onPlay = { onOpenGame?.invoke("slot_fortune_gems_3") })
+                }
             }
             Box(modifier = Modifier.weight(1f)) {
-                FlyXCard(onPlay = { onOpenGame?.invoke("flyx") })
+                DynamicCasinoGameCard(gameId = "flyx", games = games, onPlay = { onOpenGame?.invoke("flyx") }) {
+                    FlyXCard(onPlay = { onOpenGame?.invoke("flyx") })
+                }
             }
         }
 
@@ -208,15 +215,101 @@ fun HotGamesSection(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Box(modifier = Modifier.weight(1f)) {
-                AviatorHotCard(onPlay = onOpenAviator)
+                DynamicCasinoGameCard(gameId = "aviator_crash", games = games, onPlay = onOpenAviator) {
+                    AviatorHotCard(onPlay = onOpenAviator)
+                }
             }
             Box(modifier = Modifier.weight(1f)) {
-                BoxingKingCard(onPlay = { onOpenGame?.invoke("boxing_king") })
+                DynamicCasinoGameCard(gameId = "boxing_king", games = games, onPlay = { onOpenGame?.invoke("boxing_king") }) {
+                    BoxingKingCard(onPlay = { onOpenGame?.invoke("boxing_king") })
+                }
             }
             Box(modifier = Modifier.weight(1f)) {
-                MightySevensCard(onPlay = { onOpenGame?.invoke("mighty_sevens") })
+                DynamicCasinoGameCard(gameId = "mighty_sevens", games = games, onPlay = { onOpenGame?.invoke("mighty_sevens") }) {
+                    MightySevensCard(onPlay = { onOpenGame?.invoke("mighty_sevens") })
+                }
             }
         }
+    }
+}
+
+/**
+ * Dynamic Game Card wrapper:
+ * If an admin uploaded a custom cover picture for this game in the Admin Panel,
+ * it renders the custom image with perfect scale mode and casino card framing.
+ * If no custom image exists, it falls back to the default Canvas artwork seamlessly.
+ */
+@Composable
+private fun DynamicCasinoGameCard(
+    gameId: String,
+    games: List<com.example.model.GameItem>,
+    onPlay: (() -> Unit)? = null,
+    modifier: Modifier = Modifier,
+    fallbackContent: @Composable () -> Unit
+) {
+    val matchedGame = games.find {
+        it.id.equals(gameId, ignoreCase = true) ||
+        (gameId == "super_ace" && (it.id.contains("super_ace", ignoreCase = true) || it.titleEn.contains("Super Ace", ignoreCase = true))) ||
+        (gameId == "aviator_crash" && (it.id.contains("aviator", ignoreCase = true) || it.titleEn.contains("Aviator", ignoreCase = true))) ||
+        (gameId == "slot_fortune_gems_3" && (it.id.contains("fortune_gems", ignoreCase = true) || it.titleEn.contains("Fortune Gems", ignoreCase = true))) ||
+        (gameId == "flyx" && (it.id.contains("flyx", ignoreCase = true) || it.titleEn.contains("FlyX", ignoreCase = true))) ||
+        (gameId == "boxing_king" && (it.id.contains("boxing", ignoreCase = true) || it.titleEn.contains("Boxing", ignoreCase = true))) ||
+        (gameId == "mighty_sevens" && (it.id.contains("mighty", ignoreCase = true) || it.id.contains("777", ignoreCase = true) || it.titleEn.contains("777", ignoreCase = true)))
+    }
+
+    if (matchedGame != null && matchedGame.imageUrl.isNotBlank()) {
+        Card(
+            modifier = modifier
+                .fillMaxWidth()
+                .height(154.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .clickable(enabled = onPlay != null) { onPlay?.invoke() },
+            shape = RoundedCornerShape(14.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+            border = BorderStroke(1.2.dp, Color(0xFF00F5B8).copy(alpha = 0.5f))
+        ) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                val scaleMode = if (matchedGame.thumbnailFitMode.equals("FIT", ignoreCase = true)) {
+                    androidx.compose.ui.layout.ContentScale.Fit
+                } else {
+                    androidx.compose.ui.layout.ContentScale.Crop
+                }
+                coil.compose.AsyncImage(
+                    model = matchedGame.imageUrl,
+                    contentDescription = matchedGame.titleEn,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = scaleMode
+                )
+                // Bottom vignette gradient
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(Color.Transparent, Color.Transparent, Color(0xDD03191D))
+                            )
+                        )
+                )
+                // Bottom title badge
+                Surface(
+                    shape = RoundedCornerShape(topEnd = 6.dp),
+                    color = Color(0xDD03191D),
+                    modifier = Modifier.align(Alignment.BottomStart)
+                ) {
+                    Text(
+                        text = matchedGame.titleBn.ifBlank { matchedGame.titleEn },
+                        color = Color(0xFFFDE68A),
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                }
+            }
+        }
+    } else {
+        fallbackContent()
     }
 }
 

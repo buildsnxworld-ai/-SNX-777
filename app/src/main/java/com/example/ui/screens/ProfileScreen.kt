@@ -5,6 +5,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -32,6 +33,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.R
+import com.example.data.AdminManager
 import com.example.model.*
 import com.example.ui.components.CasinoPromotionsAndInviteHub
 import com.example.ui.theme.*
@@ -346,58 +348,91 @@ fun ProfileScreen(
                 }
             } else {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    myTransactions.take(15).forEach { item ->
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(10.dp),
-                        colors = CardDefaults.cardColors(containerColor = Slate800),
-                        border = CardDefaults.outlinedCardBorder().copy(brush = Brush.linearGradient(listOf(CasinoBorderSubtle, CasinoBorderSubtle)))
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(12.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(
-                                        text = if (item.type == TransactionType.DEPOSIT) "⬇️ " else "⬆️ ",
-                                        fontSize = 12.sp
-                                    )
-                                    Text(
-                                        text = if (language == AppLanguage.BN) item.type.bn else item.type.en,
-                                        color = Slate100,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 12.sp
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(text = item.method.displayName.substringBefore(" "), color = Slate400, fontSize = 11.sp)
-                                }
-                                Text(
-                                    text = "TrxID: ${item.trxId} • ${item.timeFormatted}",
-                                    color = Slate400,
-                                    fontSize = 10.sp
-                                )
-                            }
+                    myTransactions.take(20).forEach { item ->
+                        val isRejected = item.status == TransactionStatus.REJECTED
+                        val isApproved = item.status == TransactionStatus.APPROVED
 
-                            Column(horizontalAlignment = Alignment.End) {
-                                Text(
-                                    text = (if (item.type == TransactionType.DEPOSIT) "+ " else "- ") + StringRes.formatBDT(item.amount, language),
-                                    color = if (item.type == TransactionType.DEPOSIT) AccentEmerald else Slate100,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(10.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (isRejected) Color(0xFF1E1418) else Slate800
+                            ),
+                            border = CardDefaults.outlinedCardBorder().copy(
+                                brush = Brush.linearGradient(
+                                    if (isRejected) listOf(Color(0xFFFF5252).copy(alpha = 0.4f), Color(0xFFFF5252).copy(alpha = 0.2f))
+                                    else if (isApproved) listOf(AccentEmerald.copy(alpha = 0.4f), AccentEmerald.copy(alpha = 0.15f))
+                                    else listOf(CasinoBorderSubtle, CasinoBorderSubtle)
                                 )
-                                Text(
-                                    text = if (language == AppLanguage.BN) item.status.bn else item.status.en,
-                                    color = Color(item.status.colorHex),
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 10.sp
-                                )
+                            )
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(12.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(
+                                            text = if (item.type == TransactionType.DEPOSIT) "⬇️ " else "⬆️ ",
+                                            fontSize = 12.sp
+                                        )
+                                        Text(
+                                            text = if (language == AppLanguage.BN) item.type.bn else item.type.en,
+                                            color = Slate100,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 12.sp
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(text = item.method.displayName.substringBefore(" "), color = Slate400, fontSize = 11.sp)
+                                    }
+                                    Text(
+                                        text = "TrxID: ${item.trxId} • ${item.timeFormatted}",
+                                        color = Slate400,
+                                        fontSize = 10.sp
+                                    )
+                                }
+
+                                Column(horizontalAlignment = Alignment.End) {
+                                    Text(
+                                        text = (if (item.type == TransactionType.DEPOSIT) "+ " else "- ") + StringRes.formatBDT(item.amount, language),
+                                        color = if (item.type == TransactionType.DEPOSIT && !isRejected) AccentEmerald else if (isRejected) Color(0xFFFF8A80) else Slate100,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 13.sp
+                                    )
+
+                                    Spacer(modifier = Modifier.height(3.dp))
+
+                                    // Simple Status badge
+                                    Surface(
+                                        shape = RoundedCornerShape(4.dp),
+                                        color = when (item.status) {
+                                            TransactionStatus.APPROVED -> Color(0xFF0F2E23)
+                                            TransactionStatus.PENDING -> Color(0xFF332709)
+                                            TransactionStatus.REJECTED -> Color(0xFF3B151A)
+                                        },
+                                        border = BorderStroke(
+                                            0.8.dp,
+                                            Color(item.status.colorHex).copy(alpha = 0.5f)
+                                        )
+                                    ) {
+                                        Text(
+                                            text = when (item.status) {
+                                                TransactionStatus.APPROVED -> if (language == AppLanguage.BN) "✔ এপ্রুভ" else "Approved"
+                                                TransactionStatus.PENDING -> if (language == AppLanguage.BN) "⏳ পেন্ডিং" else "Pending"
+                                                TransactionStatus.REJECTED -> if (language == AppLanguage.BN) "✖ রিজেক্ট" else "Rejected"
+                                            },
+                                            color = Color(item.status.colorHex),
+                                            fontWeight = FontWeight.ExtraBold,
+                                            fontSize = 10.sp,
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                }
                             }
                         }
-                    }
                     }
                 }
             }

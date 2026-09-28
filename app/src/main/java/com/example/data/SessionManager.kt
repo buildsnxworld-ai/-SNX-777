@@ -213,6 +213,7 @@ class SessionManager(context: Context) {
                     put("timeFormatted", item.timeFormatted)
                     put("username", item.username)
                     put("userPhone", item.userPhone)
+                    put("rejectReason", item.rejectReason)
                 }
                 jsonArray.put(obj)
             }
@@ -242,7 +243,8 @@ class SessionManager(context: Context) {
                         status = TransactionStatus.valueOf(obj.getString("status")),
                         timeFormatted = obj.getString("timeFormatted"),
                         username = obj.optString("username", ""),
-                        userPhone = obj.optString("userPhone", "")
+                        userPhone = obj.optString("userPhone", ""),
+                        rejectReason = obj.optString("rejectReason", "")
                     )
                 )
             }

@@ -30,7 +30,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.example.R
+import com.example.model.GameItem
 
 /**
  * High-fidelity Casino Sections matching the user's uploaded screenshots:
@@ -41,6 +43,7 @@ import com.example.R
 @Composable
 fun CasinoSectionsComponent(
     onOpenGame: ((String) -> Unit)? = null,
+    games: List<GameItem> = emptyList(),
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -67,33 +70,49 @@ fun CasinoSectionsComponent(
             Box(
                 modifier = Modifier.weight(1f)
             ) {
-                CrazyTimeCard(
+                DynamicCasinoSectionCard(
+                    gameId = "crazy_time",
+                    games = games,
                     onPlay = { onOpenGame?.invoke("live_evolution_gaming") }
-                )
+                ) {
+                    CrazyTimeCard(
+                        onPlay = { onOpenGame?.invoke("live_evolution_gaming") }
+                    )
+                }
             }
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .clickable(enabled = onOpenGame != null) { onOpenGame?.invoke("live_playtech") }
             ) {
-                LiveDealerCard(
-                    brand = "PLAYTECH",
-                    sub = "LIVE CASINO",
-                    imageResId = R.drawable.img_dealer_foreign_1,
-                    badgeText = "LIVE VIP"
-                )
+                DynamicCasinoSectionCard(
+                    gameId = "live_playtech",
+                    games = games,
+                    onPlay = { onOpenGame?.invoke("live_playtech") }
+                ) {
+                    LiveDealerCard(
+                        brand = "PLAYTECH",
+                        sub = "LIVE CASINO",
+                        imageResId = R.drawable.img_dealer_foreign_1,
+                        badgeText = "LIVE VIP"
+                    )
+                }
             }
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .clickable(enabled = onOpenGame != null) { onOpenGame?.invoke("live_w_casino") }
             ) {
-                LiveDealerCard(
-                    brand = "W CASINO",
-                    sub = "LIVE CASINO",
-                    imageResId = R.drawable.img_dealer_foreign_2,
-                    badgeText = "DEALER HD"
-                )
+                DynamicCasinoSectionCard(
+                    gameId = "live_w_casino",
+                    games = games,
+                    onPlay = { onOpenGame?.invoke("live_w_casino") }
+                ) {
+                    LiveDealerCard(
+                        brand = "W CASINO",
+                        sub = "LIVE CASINO",
+                        imageResId = R.drawable.img_dealer_foreign_2,
+                        badgeText = "DEALER HD"
+                    )
+                }
             }
         }
 
@@ -115,53 +134,65 @@ fun CasinoSectionsComponent(
         ) {
             // Player 1: Batsman (Batting with helmet and bat in hand)
             Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .clickable(enabled = onOpenGame != null) { onOpenGame?.invoke("sports_9wickets") }
+                modifier = Modifier.weight(1f)
             ) {
-                CricketPlayerCard(
-                    brand = "9WICKETS",
-                    playerName = "BATTING",
-                    jerseyTag = "BATSMAN",
-                    imageResId = R.drawable.img_cricket_batsman,
-                    badgeColor = Color(0xFF1D4ED8),
-                    accentColor = Color(0xFF38BDF8),
-                    actionEmoji = "🏏"
-                )
+                DynamicCasinoSectionCard(
+                    gameId = "sports_9wickets",
+                    games = games,
+                    onPlay = { onOpenGame?.invoke("sports_9wickets") }
+                ) {
+                    CricketPlayerCard(
+                        brand = "9WICKETS",
+                        playerName = "BATTING",
+                        jerseyTag = "BATSMAN",
+                        imageResId = R.drawable.img_cricket_batsman,
+                        badgeColor = Color(0xFF1D4ED8),
+                        accentColor = Color(0xFF38BDF8),
+                        actionEmoji = "🏏"
+                    )
+                }
             }
 
             // Player 2: Fast Bowler (Bowling in dynamic delivery action)
             Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .clickable(enabled = onOpenGame != null) { onOpenGame?.invoke("sports_lucky") }
+                modifier = Modifier.weight(1f)
             ) {
-                CricketPlayerCard(
-                    brand = "LUCKY SPORTS",
-                    playerName = "BOWLING",
-                    jerseyTag = "BOWLER",
-                    imageResId = R.drawable.img_cricket_bowler,
-                    badgeColor = Color(0xFF15803D),
-                    accentColor = Color(0xFF22C55E),
-                    actionEmoji = "🔴"
-                )
+                DynamicCasinoSectionCard(
+                    gameId = "sports_lucky",
+                    games = games,
+                    onPlay = { onOpenGame?.invoke("sports_lucky") }
+                ) {
+                    CricketPlayerCard(
+                        brand = "LUCKY SPORTS",
+                        playerName = "BOWLING",
+                        jerseyTag = "BOWLER",
+                        imageResId = R.drawable.img_cricket_bowler,
+                        badgeColor = Color(0xFF15803D),
+                        accentColor = Color(0xFF22C55E),
+                        actionEmoji = "🔴"
+                    )
+                }
             }
 
             // Player 3: Wicketkeeper (Crouched behind stumps with keeper gloves and pads)
             Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .clickable(enabled = onOpenGame != null) { onOpenGame?.invoke("sports_saba") }
+                modifier = Modifier.weight(1f)
             ) {
-                CricketPlayerCard(
-                    brand = "SABA SPORTS",
-                    playerName = "WICKET KEEPER",
-                    jerseyTag = "KEEPER",
-                    imageResId = R.drawable.img_cricket_keeper,
-                    badgeColor = Color(0xFFB45309),
-                    accentColor = Color(0xFFFBBF24),
-                    actionEmoji = "🧤"
-                )
+                DynamicCasinoSectionCard(
+                    gameId = "sports_saba",
+                    games = games,
+                    onPlay = { onOpenGame?.invoke("sports_saba") }
+                ) {
+                    CricketPlayerCard(
+                        brand = "SABA SPORTS",
+                        playerName = "WICKET KEEPER",
+                        jerseyTag = "KEEPER",
+                        imageResId = R.drawable.img_cricket_keeper,
+                        badgeColor = Color(0xFFB45309),
+                        accentColor = Color(0xFFFBBF24),
+                        actionEmoji = "🧤"
+                    )
+                }
             }
         }
 
@@ -183,19 +214,37 @@ fun CasinoSectionsComponent(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Box(modifier = Modifier.weight(1f)) {
-                AnubisWrathCard(
+                DynamicCasinoSectionCard(
+                    gameId = "slot_anubis_wrath",
+                    games = games,
                     onPlay = { onOpenGame?.invoke("slot_anubis_wrath") }
-                )
+                ) {
+                    AnubisWrathCard(
+                        onPlay = { onOpenGame?.invoke("slot_anubis_wrath") }
+                    )
+                }
             }
             Box(modifier = Modifier.weight(1f)) {
-                FortuneGems3Card(
+                DynamicCasinoSectionCard(
+                    gameId = "slot_fortune_gems_3",
+                    games = games,
                     onPlay = { onOpenGame?.invoke("slot_fortune_gems_3") }
-                )
+                ) {
+                    FortuneGems3Card(
+                        onPlay = { onOpenGame?.invoke("slot_fortune_gems_3") }
+                    )
+                }
             }
             Box(modifier = Modifier.weight(1f)) {
-                Rocket777Card(
+                DynamicCasinoSectionCard(
+                    gameId = "slot_777_rocket",
+                    games = games,
                     onPlay = { onOpenGame?.invoke("slot_777_rocket") }
-                )
+                ) {
+                    Rocket777Card(
+                        onPlay = { onOpenGame?.invoke("slot_777_rocket") }
+                    )
+                }
             }
         }
 
@@ -207,19 +256,37 @@ fun CasinoSectionsComponent(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Box(modifier = Modifier.weight(1f)) {
-                FortuneGarudaCard(
+                DynamicCasinoSectionCard(
+                    gameId = "fortune_garuda",
+                    games = games,
                     onPlay = { onOpenGame?.invoke("fortune_garuda") }
-                )
+                ) {
+                    FortuneGarudaCard(
+                        onPlay = { onOpenGame?.invoke("fortune_garuda") }
+                    )
+                }
             }
             Box(modifier = Modifier.weight(1f)) {
-                LudoQuickCard(
+                DynamicCasinoSectionCard(
+                    gameId = "ludo_quick",
+                    games = games,
                     onPlay = { onOpenGame?.invoke("ludo_quick") }
-                )
+                ) {
+                    LudoQuickCard(
+                        onPlay = { onOpenGame?.invoke("ludo_quick") }
+                    )
+                }
             }
             Box(modifier = Modifier.weight(1f)) {
-                AndarBaharCard(
+                DynamicCasinoSectionCard(
+                    gameId = "andar_bahar",
+                    games = games,
                     onPlay = { onOpenGame?.invoke("andar_bahar") }
-                )
+                ) {
+                    AndarBaharCard(
+                        onPlay = { onOpenGame?.invoke("andar_bahar") }
+                    )
+                }
             }
         }
 
@@ -231,21 +298,127 @@ fun CasinoSectionsComponent(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Box(modifier = Modifier.weight(1f)) {
-                Cards32Card(
+                DynamicCasinoSectionCard(
+                    gameId = "32_cards",
+                    games = games,
                     onPlay = { onOpenGame?.invoke("32_cards") }
-                )
+                ) {
+                    Cards32Card(
+                        onPlay = { onOpenGame?.invoke("32_cards") }
+                    )
+                }
             }
             Box(modifier = Modifier.weight(1f)) {
-                ThaiHiLoCard(
+                DynamicCasinoSectionCard(
+                    gameId = "thai_hi_lo",
+                    games = games,
                     onPlay = { onOpenGame?.invoke("thai_hi_lo") }
-                )
+                ) {
+                    ThaiHiLoCard(
+                        onPlay = { onOpenGame?.invoke("thai_hi_lo") }
+                    )
+                }
             }
             Box(modifier = Modifier.weight(1f)) {
-                ThaiFishPrawnCrabCard(
+                DynamicCasinoSectionCard(
+                    gameId = "thai_fish_prawn_crab",
+                    games = games,
                     onPlay = { onOpenGame?.invoke("thai_fish_prawn_crab") }
-                )
+                ) {
+                    ThaiFishPrawnCrabCard(
+                        onPlay = { onOpenGame?.invoke("thai_fish_prawn_crab") }
+                    )
+                }
             }
         }
+    }
+}
+
+/**
+ * Dynamic Section Game Card wrapper:
+ * If an admin uploaded a custom cover image for this game, renders the image
+ * with proper scale mode and rounded corners. Falls back to original design otherwise.
+ */
+@Composable
+private fun DynamicCasinoSectionCard(
+    gameId: String,
+    games: List<GameItem>,
+    onPlay: (() -> Unit)? = null,
+    modifier: Modifier = Modifier,
+    fallbackContent: @Composable () -> Unit
+) {
+    val matchedGame = games.find {
+        it.id.equals(gameId, ignoreCase = true) ||
+        (gameId.contains("crazy_time") && (it.id.contains("crazy_time") || it.titleEn.contains("Crazy Time", ignoreCase = true))) ||
+        (gameId.contains("playtech") && (it.id.contains("playtech") || it.titleEn.contains("Playtech", ignoreCase = true))) ||
+        (gameId.contains("w_casino") && (it.id.contains("w_casino") || it.titleEn.contains("W Casino", ignoreCase = true))) ||
+        (gameId.contains("9wickets") && (it.id.contains("9wickets") || it.id.contains("cricket") || it.titleEn.contains("Cricket", ignoreCase = true))) ||
+        (gameId.contains("lucky") && (it.id.contains("sports_lucky") || it.titleEn.contains("Lucky Sports", ignoreCase = true))) ||
+        (gameId.contains("saba") && (it.id.contains("saba") || it.titleEn.contains("Saba", ignoreCase = true))) ||
+        (gameId.contains("anubis") && (it.id.contains("anubis") || it.titleEn.contains("Anubis", ignoreCase = true))) ||
+        (gameId.contains("fortune_gems") && (it.id.contains("fortune_gems") || it.titleEn.contains("Fortune Gems", ignoreCase = true))) ||
+        (gameId.contains("777") && (it.id.contains("777") || it.id.contains("slot_777") || it.titleEn.contains("777", ignoreCase = true))) ||
+        (gameId.contains("garuda") && (it.id.contains("garuda") || it.titleEn.contains("Garuda", ignoreCase = true))) ||
+        (gameId.contains("ludo") && (it.id.contains("ludo") || it.titleEn.contains("Ludo", ignoreCase = true))) ||
+        (gameId.contains("andar_bahar") && (it.id.contains("andar") || it.titleEn.contains("Andar", ignoreCase = true))) ||
+        (gameId.contains("32_cards") && (it.id.contains("32") || it.titleEn.contains("32 Cards", ignoreCase = true))) ||
+        (gameId.contains("thai_hi_lo") && (it.id.contains("dice") || it.id.contains("hi_lo") || it.titleEn.contains("Hi-Lo", ignoreCase = true))) ||
+        (gameId.contains("fish") && (it.id.contains("fish") || it.titleEn.contains("Fish", ignoreCase = true)))
+    }
+
+    if (matchedGame != null && matchedGame.imageUrl.isNotBlank()) {
+        Card(
+            modifier = modifier
+                .fillMaxWidth()
+                .height(154.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .clickable(enabled = onPlay != null) { onPlay?.invoke() },
+            shape = RoundedCornerShape(14.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+            border = BorderStroke(1.2.dp, Color(0xFF00F5B8).copy(alpha = 0.5f))
+        ) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                val scaleMode = if (matchedGame.thumbnailFitMode.equals("FIT", ignoreCase = true)) {
+                    ContentScale.Fit
+                } else {
+                    ContentScale.Crop
+                }
+                AsyncImage(
+                    model = matchedGame.imageUrl,
+                    contentDescription = matchedGame.titleEn,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = scaleMode
+                )
+                // Bottom vignette gradient
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(Color.Transparent, Color.Transparent, Color(0xDD03191D))
+                            )
+                        )
+                )
+                // Bottom title badge
+                Surface(
+                    shape = RoundedCornerShape(topEnd = 6.dp),
+                    color = Color(0xDD03191D),
+                    modifier = Modifier.align(Alignment.BottomStart)
+                ) {
+                    Text(
+                        text = matchedGame.titleBn.ifBlank { matchedGame.titleEn },
+                        color = Color(0xFFFDE68A),
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                }
+            }
+        }
+    } else {
+        fallbackContent()
     }
 }
 

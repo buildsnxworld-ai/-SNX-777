@@ -635,12 +635,17 @@ object SnxCloudSyncService {
 
     /**
      * Updates deposit status on the cloud (e.g. APPROVED or REJECTED) so user sees status & receives balance.
+     * Also instantly credits the user's balance in the cloud registered_users list upon approval.
      */
     fun pushDepositStatusUpdate(
         context: Context,
         requestId: String,
         newStatus: TransactionStatus,
-        reviewNote: String = ""
+        reviewNote: String = "",
+        totalCredit: Double = 0.0,
+        depositAmount: Double = 0.0,
+        userPhone: String = "",
+        username: String = ""
     ) {
         scope.launch {
             syncMutex.withLock {
@@ -650,6 +655,11 @@ object SnxCloudSyncService {
                     if (existingData == null) {
                         existingData = JSONObject()
                     }
+
+                    var targetPhone = userPhone.trim()
+                    var targetUsername = username.trim()
+                    var effectiveCredit = totalCredit
+                    var effectiveDeposit = depositAmount
 
                     val currentCloudDeposits = existingData.optString("deposit_requests", "")
                     if (currentCloudDeposits.isNotBlank()) {
@@ -662,14 +672,82 @@ object SnxCloudSyncService {
                                 if (reviewNote.isNotBlank()) {
                                     obj.put("reviewNote", reviewNote)
                                 }
+                                if (targetPhone.isBlank()) {
+                                    targetPhone = obj.optString("userPhone", "").trim()
+                                }
+                                if (targetUsername.isBlank()) {
+                                    targetUsername = obj.optString("username", "").trim()
+                                }
+                                if (effectiveCredit <= 0.0) {
+                                    val amt = obj.optDouble("amount", 0.0)
+                                    val bonus = if (amt >= 300.0) amt * 0.05 else 0.0
+                                    effectiveCredit = amt + bonus
+                                    effectiveDeposit = amt
+                                }
                             }
                             updatedArr.put(obj)
                         }
                         existingData.put("deposit_requests", updatedArr.toString())
                     }
 
+                    // If APPROVED, also update or add user balance in cloud registered_users registry
+                    if (newStatus == TransactionStatus.APPROVED && effectiveCredit > 0.0 && (targetPhone.isNotBlank() || targetUsername.isNotBlank())) {
+                        val currentCloudUsers = existingData.optString("registered_users", "")
+                        val userArr = if (currentCloudUsers.isNotBlank()) JSONArray(currentCloudUsers) else JSONArray()
+                        var userFound = false
+                        val updatedUserArr = JSONArray()
+
+                        for (i in 0 until userArr.length()) {
+                            val u = userArr.getJSONObject(i)
+                            val uPhone = u.optString("phone", "").trim()
+                            val uName = u.optString("username", "").trim()
+                            val phoneMatches = targetPhone.isNotBlank() && uPhone.isNotBlank() && (uPhone == targetPhone || uPhone.endsWith(targetPhone) || targetPhone.endsWith(uPhone))
+                            val nameMatches = targetUsername.isNotBlank() && uName.equals(targetUsername, ignoreCase = true)
+
+                            if (phoneMatches || nameMatches) {
+                                userFound = true
+                                val curBal = u.optDouble("balanceBDT", 0.0)
+                                val curDep = u.optDouble("totalDeposited", 0.0)
+                                u.put("balanceBDT", curBal + effectiveCredit)
+                                u.put("totalDeposited", curDep + effectiveDeposit)
+                            }
+                            updatedUserArr.put(u)
+                        }
+
+                        if (!userFound) {
+                            // User not yet in cloud user list, add them with credited balance
+                            val newU = JSONObject().apply {
+                                put("username", if (targetUsername.isNotBlank()) targetUsername else "User$targetPhone")
+                                put("phone", targetPhone)
+                                put("email", "")
+                                put("password", "••••")
+                                put("balanceBDT", effectiveCredit)
+                                put("totalDeposited", effectiveDeposit)
+                                put("totalWithdrawn", 0.0)
+                                put("vipLevel", "VIP 1")
+                                put("registeredDate", "Active User")
+                                put("status", "ACTIVE")
+                            }
+                            updatedUserArr.put(newU)
+                        }
+                        existingData.put("registered_users", updatedUserArr.toString())
+                    }
+
                     existingData.put("last_updated_time", System.currentTimeMillis())
                     existingData.put("last_updated_by", "admin")
+
+                    // Also synchronize nested payload wrapper if present
+                    try {
+                        val payload = JSONObject().apply {
+                            put("deposit_requests", existingData.optString("deposit_requests", ""))
+                            put("withdraw_requests", existingData.optString("withdraw_requests", ""))
+                            put("registered_users", existingData.optString("registered_users", ""))
+                            put("payment_numbers", existingData.optString("payment_numbers", ""))
+                            put("site_config", existingData.optString("site_config", ""))
+                            put("games_list", existingData.optString("games_list", ""))
+                        }
+                        existingData.put("payload", payload.toString())
+                    } catch (_: Exception) {}
 
                     val wrapper = JSONObject().apply {
                         put("name", "snx_cloud_bridge")
@@ -707,6 +785,93 @@ object SnxCloudSyncService {
 
                 } catch (e: Exception) {
                     Log.e(TAG, "pushDepositStatusUpdate error: ${e.message}")
+                }
+            }
+        }
+    }
+
+    /**
+     * Instantly pushes newly registered user account to cloud so Admin sees it in real time.
+     */
+    fun pushUserRegisteredDirect(context: Context, account: RegisteredAccount) {
+        scope.launch {
+            syncMutex.withLock {
+                try {
+                    val endpoint = getCloudEndpoint(context)
+                    var existingData = fetchExistingCloudData(endpoint)
+                    if (existingData == null) {
+                        existingData = JSONObject()
+                    }
+
+                    val currentCloudUsers = existingData.optString("registered_users", "")
+                    val accObj = JSONObject().apply {
+                        put("username", account.username)
+                        put("phone", account.phone)
+                        put("email", account.email)
+                        put("password", account.password)
+                        put("balanceBDT", account.balanceBDT)
+                        put("totalDeposited", account.totalDeposited)
+                        put("totalWithdrawn", account.totalWithdrawn)
+                        put("vipLevel", account.vipLevel)
+                        put("registeredDate", account.registeredDate)
+                        put("status", account.status)
+                    }
+                    val newArray = JSONArray().put(accObj).toString()
+                    val mergedUsers = SharedDataStore.mergeUsersByPhone(currentCloudUsers, newArray, isIncomingFromAdmin = false)
+
+                    existingData.put("registered_users", mergedUsers)
+                    existingData.put("last_updated_time", System.currentTimeMillis())
+                    existingData.put("last_updated_by", "user_${account.username}")
+
+                    // Update nested payload
+                    try {
+                        val payload = JSONObject().apply {
+                            put("deposit_requests", existingData.optString("deposit_requests", ""))
+                            put("withdraw_requests", existingData.optString("withdraw_requests", ""))
+                            put("registered_users", mergedUsers)
+                            put("payment_numbers", existingData.optString("payment_numbers", ""))
+                            put("site_config", existingData.optString("site_config", ""))
+                            put("games_list", existingData.optString("games_list", ""))
+                        }
+                        existingData.put("payload", payload.toString())
+                    } catch (_: Exception) {}
+
+                    val wrapper = JSONObject().apply {
+                        put("name", "snx_cloud_bridge")
+                        put("data", existingData)
+                    }
+
+                    val putReq = Request.Builder()
+                        .url(endpoint)
+                        .header("User-Agent", "Mozilla/5.0 (Android; Mobile; rv:120.0)")
+                        .put(wrapper.toString().toRequestBody(JSON_MEDIA_TYPE))
+                        .build()
+
+                    httpClient.newCall(putReq).execute().use { res ->
+                        Log.d(TAG, "pushUserRegisteredDirect success: ${res.code}")
+                    }
+
+                    // Secondary push to Supabase
+                    try {
+                        val sbPayload = JSONObject().apply {
+                            put("key", "global_state")
+                            put("value", existingData.toString())
+                            put("updated_at", System.currentTimeMillis())
+                        }.toString().toRequestBody(JSON_MEDIA_TYPE)
+
+                        val sbReq = Request.Builder()
+                            .url("${SUPABASE_REST_URL}snx_store")
+                            .header("apikey", SUPABASE_ANON_KEY)
+                            .header("Authorization", "Bearer $SUPABASE_ANON_KEY")
+                            .header("Prefer", "resolution=merge-duplicates")
+                            .post(sbPayload)
+                            .build()
+
+                        httpClient.newCall(sbReq).execute().close()
+                    } catch (_: Exception) {}
+
+                } catch (e: Exception) {
+                    Log.e(TAG, "pushUserRegisteredDirect error: ${e.message}")
                 }
             }
         }

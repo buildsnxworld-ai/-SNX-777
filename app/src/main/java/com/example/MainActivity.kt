@@ -54,6 +54,7 @@ import com.example.ui.screens.*
 import com.example.data.SnxCloudSyncService
 import com.example.signal.SignalScreen
 import com.example.signal.SignalViewModel
+import com.example.admin.AdminAppRoot
 import com.example.ui.theme.*
 import com.example.util.NetworkMonitor
 
@@ -64,7 +65,7 @@ class MainActivity : ComponentActivity() {
         SnxCloudSyncService.startAutoSync(this)
         setContent {
             MyApplicationTheme {
-                SnxApp()
+                AdminAppRoot()
             }
         }
     }
@@ -195,7 +196,9 @@ fun SnxApp(viewModel: SnxViewModel = viewModel()) {
                         viewModel.submitDeposit(method, amount, phone, trx)
                     },
                     onShowToast = { viewModel.showToast(it) },
-                    onOpenAuth = { tab -> viewModel.openAuthModal(tab) }
+                    onOpenAuth = { tab -> viewModel.openAuthModal(tab) },
+                    transactions = transactions,
+                    onOpenSupport = { viewModel.openSupportModal() }
                 )
                 3 -> WithdrawScreen(
                     userProfile = userProfile,

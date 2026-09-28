@@ -14,7 +14,7 @@ android {
   compileSdk { version = release(36) { minorApiLevel = 1 } }
 
   defaultConfig {
-    applicationId = "com.aistudio.snx777.website"
+    applicationId = "com.aistudio.snx777.admin"
     minSdk = 24
     targetSdk = 36
     versionCode = 5

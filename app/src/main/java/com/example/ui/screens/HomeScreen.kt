@@ -144,7 +144,7 @@ fun HomeScreen(
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(12.dp))
-                    // Payment Method Badges: bKash & Nagad
+                    // Payment Method Badges: bKash & Nagad (both navigate directly to Deposit)
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
@@ -157,13 +157,13 @@ fun HomeScreen(
                                 .testTag("home_deposit_bkash_badge")
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "bKash " + StringRes.t(language, "ডিপোজিট", "Deposit"),
+                                    text = "bKash",
                                     color = Color.White,
-                                    fontSize = 11.sp,
+                                    fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold
                                 )
                             }
@@ -172,17 +172,17 @@ fun HomeScreen(
                             shape = RoundedCornerShape(8.dp),
                             color = NagadOrange,
                             modifier = Modifier
-                                .clickable { onOpenWithdraw() }
+                                .clickable { onOpenDeposit() }
                                 .testTag("home_deposit_nagad_badge")
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "Nagad " + StringRes.t(language, "উত্তোলন", "Withdraw"),
+                                    text = "Nagad",
                                     color = Color.White,
-                                    fontSize = 11.sp,
+                                    fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold
                                 )
                             }
@@ -296,6 +296,7 @@ fun HomeScreen(
         // New HOT GAMES Section (Matching exact screenshot layout, replacing previous games listing)
         item(span = { GridItemSpan(2) }) {
             com.example.ui.components.HotGamesSection(
+                games = games,
                 onOpenAviator = {
                     if (userProfile?.isLoggedIn != true) {
                         onShowToast?.invoke(
@@ -321,6 +322,7 @@ fun HomeScreen(
         // LIVE CASINO, SPORTS & SLOTS Section (From User Screenshots)
         item(span = { GridItemSpan(2) }) {
             com.example.ui.components.CasinoSectionsComponent(
+                games = games,
                 onOpenGame = { gameId -> onOpenGame(gameId) }
             )
         }
@@ -541,7 +543,7 @@ private fun QuickActionsBar(
             testTag = "quick_action_deposit"
         )
         QuickActionButton(
-            emoji = "💸",
+            icon = Icons.Default.AccountBalance,
             title = StringRes.t(language, "উত্তোলন", "Withdraw"),
             color = NagadOrange,
             onClick = onOpenWithdraw,
@@ -573,7 +575,8 @@ private fun QuickActionsBar(
 
 @Composable
 private fun QuickActionButton(
-    emoji: String,
+    emoji: String = "",
+    icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
     title: String,
     color: Color,
     onClick: () -> Unit,
@@ -594,7 +597,16 @@ private fun QuickActionButton(
                 .border(1.dp, color.copy(alpha = 0.4f), CircleShape),
             contentAlignment = Alignment.Center
         ) {
-            Text(text = emoji, fontSize = 20.sp)
+            if (icon != null) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = title,
+                    tint = color,
+                    modifier = Modifier.size(22.dp)
+                )
+            } else {
+                Text(text = emoji, fontSize = 20.sp)
+            }
         }
         Spacer(modifier = Modifier.height(4.dp))
         Text(
@@ -734,11 +746,11 @@ private fun GameGridCard(
                 .fillMaxWidth()
                 .padding(10.dp)
         ) {
-            // Icon & Badge Row
+            // Icon & Badge Row (Smart Casino Aspect Ratio & Perfect Fit)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(84.dp)
+                    .height(112.dp)
                     .clip(RoundedCornerShape(10.dp))
                     .background(
                         Brush.radialGradient(
@@ -751,18 +763,35 @@ private fun GameGridCard(
                 contentAlignment = Alignment.Center
             ) {
                 if (game.imageUrl.isNotBlank()) {
+                    val scaleMode = if (game.thumbnailFitMode.equals("FIT", ignoreCase = true)) {
+                        ContentScale.Fit
+                    } else {
+                        ContentScale.Crop
+                    }
                     coil.compose.AsyncImage(
                         model = game.imageUrl,
                         contentDescription = game.titleEn,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = scaleMode
+                    )
+                    // Bottom gradient vignette for polished casino look
+                    Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .fillMaxHeight(),
-                        contentScale = ContentScale.Fit
+                            .fillMaxSize()
+                            .background(
+                                Brush.verticalGradient(
+                                    listOf(
+                                        Color.Transparent,
+                                        Color.Transparent,
+                                        Color(0x99000000)
+                                    )
+                                )
+                            )
                     )
                 } else {
                     Text(
                         text = game.iconEmoji,
-                        fontSize = 42.sp
+                        fontSize = 44.sp
                     )
                 }
 

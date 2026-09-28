@@ -63,7 +63,7 @@ class AdminMainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        com.snx.adminapp.data.SnxCloudSyncService.startAutoSync(this)
+        com.example.data.SnxCloudSyncService.startAutoSync(this)
         setContent {
             MyApplicationTheme {
                 AdminAppRoot()
@@ -79,7 +79,7 @@ fun AdminAppRoot() {
     val isAdminLoggedIn by adminManager.isAdminLoggedIn.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
-        com.snx.adminapp.data.SnxCloudSyncService.pullFromCloud(context)
+        com.example.data.SnxCloudSyncService.pullFromCloud(context)
         SharedDataStore.pullFromOtherApp(context)
         adminManager.reloadFromStorage()
     }
@@ -211,15 +211,15 @@ fun AdminLoginScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Username Input (Required: SNX)
+                // Username Input
                 OutlinedTextField(
                     value = usernameInput,
                     onValueChange = {
                         usernameInput = it
                         errorMessage = null
                     },
-                    label = { Text("এডমিন ইউজারনেম (Username: SNX)", color = Color(0xFF94A3B8)) },
-                    placeholder = { Text("যেমন: SNX", color = Color(0xFF64748B)) },
+                    label = { Text("এডমিন ইউজারনেম", color = Color(0xFF94A3B8)) },
+                    placeholder = { Text("ইউজারনেম লিখুন...", color = Color(0xFF64748B)) },
                     leadingIcon = {
                         Icon(Icons.Default.Person, contentDescription = null, tint = Color(0xFF00E676))
                     },
@@ -240,14 +240,14 @@ fun AdminLoginScreen(
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // Password Input: (Required: ANX 20)
+                // Password Input: strictly requires ANX 20 to enter
                 OutlinedTextField(
                     value = passwordInput,
                     onValueChange = {
                         passwordInput = it
                         errorMessage = null
                     },
-                    label = { Text("সিকিউরিটি পাসওয়ার্ড (Password: ANX 20)", color = Color(0xFF94A3B8)) },
+                    label = { Text("সিকিউরিটি পাসওয়ার্ড", color = Color(0xFF94A3B8)) },
                     placeholder = { Text("পাসওয়ার্ড লিখুন...", color = Color(0xFF64748B)) },
                     leadingIcon = {
                         Icon(Icons.Default.Lock, contentDescription = null, tint = Color(0xFFFFD54F))
@@ -294,13 +294,13 @@ fun AdminLoginScreen(
                 Button(
                     onClick = {
                         if (usernameInput.trim().isEmpty()) {
-                            errorMessage = "অনুগ্রহ করে এডমিন ইউজারনেম দিন (SNX)"
+                            errorMessage = "অনুগ্রহ করে এডমিন ইউজারনেম দিন"
                         } else if (passwordInput.trim().isEmpty()) {
-                            errorMessage = "অনুগ্রহ করে এডমিন পাসওয়ার্ড দিন (ANX 20)"
+                            errorMessage = "অনুগ্রহ করে এডমিন পাসওয়ার্ড দিন"
                         } else {
                             val ok = onLogin(usernameInput, passwordInput)
                             if (!ok) {
-                                errorMessage = "ভুল ইউজারনেম বা পাসওয়ার্ড! সঠিক তথ্য: ইউজারনেম SNX, পাসওয়ার্ড ANX 20"
+                                errorMessage = "ভুল ইউজারনেম বা পাসওয়ার্ড! পুনরায় চেষ্টা করুন"
                             }
                         }
                     },
@@ -314,28 +314,6 @@ fun AdminLoginScreen(
                     Icon(Icons.Default.Login, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("এডমিন প্যানেলে প্রবেশ করুন", fontSize = 15.sp, fontWeight = FontWeight.Black)
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                OutlinedButton(
-                    onClick = {
-                        val intent = Intent(context, com.example.MainActivity::class.java).apply {
-                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        }
-                        context.startActivity(intent)
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(44.dp)
-                        .testTag("admin_open_game_website_btn"),
-                    shape = RoundedCornerShape(14.dp),
-                    border = BorderStroke(1.dp, Color(0xFF334155)),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF94A3B8))
-                ) {
-                    Icon(Icons.Default.SportsEsports, contentDescription = null, tint = Color(0xFF38BDF8), modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("গেমিং সাইটে যান (SNX 777)", fontSize = 13.sp, color = Color(0xFFE2E8F0))
                 }
             }
         }
@@ -1450,9 +1428,33 @@ fun AdminUserManagementTab(
         adminManager.getAllRegisteredUsers()
     }
 
-    val filteredUsers = remember(allUsers, searchQuery) {
-        if (searchQuery.isBlank()) allUsers
-        else allUsers.filter {
+    var statusFilter by remember { mutableStateOf("ALL") } // "ALL", "NEW", "ACTIVE", "BANNED"
+
+    LaunchedEffect(Unit) {
+        SnxCloudSyncService.pullFromCloud(context)
+        SharedDataStore.pullFromOtherApp(context)
+        adminManager.reloadFromStorage()
+    }
+
+    val newUsers = remember(allUsers) {
+        allUsers.take(20) // Latest registered users at top
+    }
+    val activeUsers = remember(allUsers) {
+        allUsers.filter { it.status == "ACTIVE" }
+    }
+    val bannedUsers = remember(allUsers) {
+        allUsers.filter { it.status == "SUSPENDED" || it.status == "BANNED" }
+    }
+
+    val filteredUsers = remember(allUsers, searchQuery, statusFilter) {
+        val baseList = when (statusFilter) {
+            "NEW" -> newUsers
+            "ACTIVE" -> activeUsers
+            "BANNED" -> bannedUsers
+            else -> allUsers
+        }
+        if (searchQuery.isBlank()) baseList
+        else baseList.filter {
             it.username.contains(searchQuery, ignoreCase = true) ||
             it.phone.contains(searchQuery)
         }
@@ -1470,18 +1472,24 @@ fun AdminUserManagementTab(
         ) {
             Column {
                 Text(
-                    text = "ইউজার ম্যানেজমেন্ট ও রেজিস্ট্রেশন লিস্ট",
+                    text = "ইউজার রেজিস্ট্রেশন লিস্ট",
                     color = Color.White,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "মোট নিবন্ধিত ইউজার: ${allUsers.size} জন",
+                    text = "মোট ইউজার: ${allUsers.size} জন • নতুন রেজিস্ট্রেশন: ${newUsers.size} জন",
                     color = Color(0xFF94A3B8),
                     fontSize = 11.sp
                 )
             }
-            IconButton(onClick = { refreshTrigger++ }) {
+            IconButton(onClick = {
+                SnxCloudSyncService.pullFromCloud(context)
+                SharedDataStore.pullFromOtherApp(context)
+                adminManager.reloadFromStorage()
+                refreshTrigger++
+                Toast.makeText(context, "ইউজার তালিকা রিফ্রেশ হয়েছে", Toast.LENGTH_SHORT).show()
+            }) {
                 Icon(Icons.Default.Refresh, contentDescription = "Refresh", tint = Color(0xFF00E676))
             }
         }
@@ -1498,6 +1506,43 @@ fun AdminUserManagementTab(
             shape = RoundedCornerShape(12.dp),
             modifier = Modifier.fillMaxWidth()
         )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Filter Chips Row (All, New Registrations, Active, Banned)
+        LazyRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            item {
+                FilterChip(
+                    selected = statusFilter == "ALL",
+                    onClick = { statusFilter = "ALL" },
+                    label = { Text("সব ইউজার (${allUsers.size})", fontSize = 11.sp) }
+                )
+            }
+            item {
+                FilterChip(
+                    selected = statusFilter == "NEW",
+                    onClick = { statusFilter = "NEW" },
+                    label = { Text("🆕 নতুন রেজিস্ট্রেশন (${newUsers.size})", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+                )
+            }
+            item {
+                FilterChip(
+                    selected = statusFilter == "ACTIVE",
+                    onClick = { statusFilter = "ACTIVE" },
+                    label = { Text("🟢 সক্রিয় (${activeUsers.size})", fontSize = 11.sp) }
+                )
+            }
+            item {
+                FilterChip(
+                    selected = statusFilter == "BANNED",
+                    onClick = { statusFilter = "BANNED" },
+                    label = { Text("🚫 ব্যান/স্থগিত (${bannedUsers.size})", fontSize = 11.sp) }
+                )
+            }
+        }
 
         Spacer(modifier = Modifier.height(10.dp))
 
@@ -1520,8 +1565,10 @@ fun AdminUserManagementTab(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(filteredUsers, key = { it.phone + it.username }) { u ->
+                    val isNew = newUsers.indexOfFirst { it.phone == u.phone } in 0..5
                     UserAccountCard(
                         user = u,
+                        isNew = isNew,
                         onEditBalance = { editingUser = u },
                         onEditStatus = { editingStatusUser = u }
                     )
@@ -1568,6 +1615,7 @@ fun AdminUserManagementTab(
 @Composable
 fun UserAccountCard(
     user: RegisteredAccount,
+    isNew: Boolean = false,
     onEditBalance: () -> Unit,
     onEditStatus: () -> Unit
 ) {
@@ -1575,7 +1623,7 @@ fun UserAccountCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFF131D31)),
-        border = BorderStroke(1.dp, Color(0xFF1E293B))
+        border = BorderStroke(1.dp, if (isNew) Color(0xFF00E676).copy(alpha = 0.5f) else Color(0xFF1E293B))
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Row(
@@ -1604,6 +1652,24 @@ fun UserAccountCard(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(text = user.username, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                             Spacer(modifier = Modifier.width(6.dp))
+
+                            if (isNew) {
+                                Surface(
+                                    shape = RoundedCornerShape(4.dp),
+                                    color = Color(0xFF0284C7).copy(alpha = 0.2f),
+                                    border = BorderStroke(1.dp, Color(0xFF38BDF8))
+                                ) {
+                                    Text(
+                                        text = "🆕 নতুন",
+                                        color = Color(0xFF38BDF8),
+                                        fontSize = 8.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(4.dp))
+                            }
+
                             // Status badge
                             Surface(
                                 shape = RoundedCornerShape(4.dp),
@@ -2090,8 +2156,8 @@ fun AdminGameManagementTab(
         GameThemeChangerDialog(
             game = game,
             onDismiss = { themeEditingGame = null },
-            onSave = { newImageUrl ->
-                adminManager.updateGameTheme(game.id, newImageUrl)
+            onSave = { newImageUrl, fitMode ->
+                adminManager.updateGameTheme(game.id, newImageUrl, fitMode)
                 themeEditingGame = null
                 Toast.makeText(context, "${game.titleBn} এর কভার ছবি সফলভাবে পরিবর্তন হয়েছে!", Toast.LENGTH_SHORT).show()
             }
@@ -2133,11 +2199,12 @@ fun AdminGameCard(
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             if (game.imageUrl.isNotBlank()) {
+                                val scaleMode = if (game.thumbnailFitMode.equals("FIT", ignoreCase = true)) ContentScale.Fit else ContentScale.Crop
                                 AsyncImage(
                                     model = game.imageUrl,
                                     contentDescription = game.titleEn,
                                     modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Fit
+                                    contentScale = scaleMode
                                 )
                             } else {
                                 Text(text = game.iconEmoji, fontSize = 26.sp)
@@ -2353,10 +2420,11 @@ fun AdminGameCard(
 fun GameThemeChangerDialog(
     game: GameItem,
     onDismiss: () -> Unit,
-    onSave: (String) -> Unit
+    onSave: (String, String) -> Unit
 ) {
     val context = LocalContext.current
     var imageUrl by remember { mutableStateOf(game.imageUrl) }
+    var thumbnailFitMode by remember { mutableStateOf(game.thumbnailFitMode) }
 
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
@@ -2441,8 +2509,8 @@ fun GameThemeChangerDialog(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Live Preview Card
-                Text("লাইভ প্রিভিউ (হোমস্ক্রিনে যেমন দেখাবে):", color = Color(0xFF38BDF8), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                // Live Preview Card (Matching Real Casino Card Appearance)
+                Text("লাইভ প্রিভিউ (ওয়েবসাইটে হুবহু যেমন দেখাবে):", color = Color(0xFF38BDF8), fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(6.dp))
                 Surface(
                     shape = RoundedCornerShape(12.dp),
@@ -2459,16 +2527,28 @@ fun GameThemeChangerDialog(
                         Surface(
                             shape = RoundedCornerShape(10.dp),
                             color = Color(0xFF1E293B),
-                            modifier = Modifier.size(64.dp)
+                            modifier = Modifier.size(70.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 if (imageUrl.isNotBlank()) {
+                                    val scaleMode = if (thumbnailFitMode == "FIT") ContentScale.Fit else ContentScale.Crop
                                     AsyncImage(
                                         model = imageUrl,
                                         contentDescription = "Cover Preview",
                                         modifier = Modifier.fillMaxSize(),
-                                        contentScale = ContentScale.Crop
+                                        contentScale = scaleMode
                                     )
+                                    if (thumbnailFitMode != "FIT") {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .background(
+                                                    Brush.verticalGradient(
+                                                        listOf(Color.Transparent, Color(0x66000000))
+                                                    )
+                                                )
+                                        )
+                                    }
                                 } else {
                                     Text(text = game.iconEmoji, fontSize = 34.sp)
                                 }
@@ -2495,12 +2575,87 @@ fun GameThemeChangerDialog(
                                 color = Color(0xFF00E676).copy(alpha = 0.15f)
                             ) {
                                 Text(
-                                    text = if (imageUrl.isNotBlank()) "✓ কাস্টম কভার ছবি সংযুক্ত" else "ডিফল্ট আইকন",
+                                    text = if (imageUrl.isNotBlank()) {
+                                        if (thumbnailFitMode == "FIT") "✓ সম্পূর্ণ ছবি অক্ষত (Fit)" else "✓ স্মার্ট ফুল ভরাট (Cover)"
+                                    } else "ডিফল্ট আইকন",
                                     color = Color(0xFF00E676),
                                     fontSize = 9.sp,
                                     fontWeight = FontWeight.Bold,
                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                 )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Thumbnail Fit Selector (Smart Cover vs Fit Inside)
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = Color(0xFF0F172A),
+                    border = BorderStroke(1.dp, Color(0xFF0284C7).copy(alpha = 0.6f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(10.dp)) {
+                        Text("📐 থাম্বনেল সাইজ ফিটিং মোড (Scale Mode):", color = Color(0xFF38BDF8), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "যেকোনো সাইট থেকে ছবি আনলে 'ফুল কার্ড ভরাট' সিলেক্ট করুন, কোনো কালো ফাঁকা জায়গা থাকবে না।",
+                            color = Color(0xFF94A3B8),
+                            fontSize = 10.sp
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            val isCrop = thumbnailFitMode != "FIT"
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = if (isCrop) Color(0xFF0284C7).copy(alpha = 0.25f) else Color(0xFF1E293B),
+                                border = BorderStroke(1.dp, if (isCrop) Color(0xFF38BDF8) else Color(0xFF334155)),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable { thumbnailFitMode = "CROP" }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(vertical = 8.dp, horizontal = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    Text("🌟 ", fontSize = 11.sp)
+                                    Text(
+                                        text = "ফুল কার্ড ভরাট (Cover)",
+                                        color = if (isCrop) Color.White else Color(0xFF94A3B8),
+                                        fontSize = 10.sp,
+                                        fontWeight = if (isCrop) FontWeight.Bold else FontWeight.Normal
+                                    )
+                                }
+                            }
+
+                            val isFit = thumbnailFitMode == "FIT"
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = if (isFit) Color(0xFF0284C7).copy(alpha = 0.25f) else Color(0xFF1E293B),
+                                border = BorderStroke(1.dp, if (isFit) Color(0xFF38BDF8) else Color(0xFF334155)),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable { thumbnailFitMode = "FIT" }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(vertical = 8.dp, horizontal = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    Text("🖼️ ", fontSize = 11.sp)
+                                    Text(
+                                        text = "সম্পূর্ণ ছবি অক্ষত (Fit)",
+                                        color = if (isFit) Color.White else Color(0xFF94A3B8),
+                                        fontSize = 10.sp,
+                                        fontWeight = if (isFit) FontWeight.Bold else FontWeight.Normal
+                                    )
+                                }
                             }
                         }
                     }
@@ -2619,7 +2774,7 @@ fun GameThemeChangerDialog(
                     }
 
                     Button(
-                        onClick = { onSave(imageUrl) },
+                        onClick = { onSave(imageUrl, thumbnailFitMode) },
                         modifier = Modifier.weight(1.5f),
                         shape = RoundedCornerShape(8.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E676), contentColor = Color.Black)
@@ -2645,6 +2800,7 @@ fun AdminAddEditGameDialog(
     var titleEn by remember { mutableStateOf(gameToEdit?.titleEn ?: "") }
     var selectedCategory by remember { mutableStateOf(gameToEdit?.category ?: GameCategory.SLOTS) }
     var imageUrl by remember { mutableStateOf(gameToEdit?.imageUrl ?: "") }
+    var thumbnailFitMode by remember { mutableStateOf(gameToEdit?.thumbnailFitMode ?: "CROP") }
     var iconEmoji by remember { mutableStateOf(gameToEdit?.iconEmoji ?: "🎰") }
     var minBetText by remember { mutableStateOf(gameToEdit?.minBet?.toInt()?.toString() ?: "10") }
     var badgeText by remember { mutableStateOf(gameToEdit?.badge ?: "") }
@@ -2728,16 +2884,28 @@ fun AdminAddEditGameDialog(
                         Surface(
                             shape = RoundedCornerShape(10.dp),
                             color = Color(0xFF1E293B),
-                            modifier = Modifier.size(56.dp)
+                            modifier = Modifier.size(64.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 if (imageUrl.isNotBlank()) {
+                                    val scaleMode = if (thumbnailFitMode == "FIT") ContentScale.Fit else ContentScale.Crop
                                     AsyncImage(
                                         model = imageUrl,
                                         contentDescription = "Preview",
                                         modifier = Modifier.fillMaxSize(),
-                                        contentScale = ContentScale.Fit
+                                        contentScale = scaleMode
                                     )
+                                    if (thumbnailFitMode != "FIT") {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .background(
+                                                    Brush.verticalGradient(
+                                                        listOf(Color.Transparent, Color(0x66000000))
+                                                    )
+                                                )
+                                        )
+                                    }
                                 } else {
                                     Text(text = iconEmoji, fontSize = 30.sp)
                                 }
@@ -2868,6 +3036,64 @@ fun AdminAddEditGameDialog(
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth()
                         )
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        // Thumbnail Fit Selector (Smart Cover vs Fit Inside)
+                        Text("📐 থাম্বনেল ফিট মোড (Scale Mode):", color = Color(0xFF38BDF8), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            val isCrop = thumbnailFitMode != "FIT"
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = if (isCrop) Color(0xFF0284C7).copy(alpha = 0.25f) else Color(0xFF1E293B),
+                                border = BorderStroke(1.dp, if (isCrop) Color(0xFF38BDF8) else Color(0xFF334155)),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable { thumbnailFitMode = "CROP" }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(vertical = 8.dp, horizontal = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    Text("🌟 ", fontSize = 11.sp)
+                                    Text(
+                                        text = "ফুল কার্ড ভরাট (Cover)",
+                                        color = if (isCrop) Color.White else Color(0xFF94A3B8),
+                                        fontSize = 10.sp,
+                                        fontWeight = if (isCrop) FontWeight.Bold else FontWeight.Normal
+                                    )
+                                }
+                            }
+
+                            val isFit = thumbnailFitMode == "FIT"
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = if (isFit) Color(0xFF0284C7).copy(alpha = 0.25f) else Color(0xFF1E293B),
+                                border = BorderStroke(1.dp, if (isFit) Color(0xFF38BDF8) else Color(0xFF334155)),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable { thumbnailFitMode = "FIT" }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(vertical = 8.dp, horizontal = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    Text("🖼️ ", fontSize = 11.sp)
+                                    Text(
+                                        text = "সম্পূর্ণ ছবি অক্ষত (Fit)",
+                                        color = if (isFit) Color.White else Color(0xFF94A3B8),
+                                        fontSize = 10.sp,
+                                        fontWeight = if (isFit) FontWeight.Bold else FontWeight.Normal
+                                    )
+                                }
+                            }
+                        }
 
                         Spacer(modifier = Modifier.height(10.dp))
 
@@ -3127,7 +3353,8 @@ fun AdminAddEditGameDialog(
                                 minBet = minBetText.toDoubleOrNull() ?: 10.0,
                                 playersCount = gameToEdit?.playersCount ?: (100..500).random(),
                                 isActive = (isActive && serverStatus != GameServerStatus.OFFLINE),
-                                serverStatus = serverStatus
+                                serverStatus = serverStatus,
+                                thumbnailFitMode = thumbnailFitMode
                             )
                             onSave(newGame)
                         },

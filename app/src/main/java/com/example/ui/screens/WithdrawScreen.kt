@@ -504,39 +504,130 @@ private fun LiveWithdrawalStatusSection(
                     fontWeight = FontWeight.SemiBold
                 )
                 Spacer(modifier = Modifier.height(4.dp))
+                var selectedWdForReason by remember { mutableStateOf<TransactionRecord?>(null) }
+
                 pastWithdrawals.forEach { item ->
+                    val isRejected = item.status == TransactionStatus.REJECTED
+                    val resolvedReason = remember(item.rejectReason, item.trxId) {
+                        if (item.rejectReason.isNotBlank()) item.rejectReason
+                        else "ভুল একাউন্ট নম্বর বা তথ্যের অমিলের কারণে উত্তোলন বাতিল করা হয়েছে। টাকা একাউন্টে ফেরত দেওয়া হয়েছে।"
+                    }
+
                     Surface(
                         shape = RoundedCornerShape(8.dp),
-                        color = Slate700,
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)
+                        color = if (isRejected) Color(0xFF1E1418) else Slate700,
+                        border = if (isRejected) BorderStroke(1.dp, Color(0xFFFF5252).copy(alpha = 0.6f)) else null,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 6.dp)
+                            .then(if (isRejected) Modifier.clickable { selectedWdForReason = item } else Modifier)
                     ) {
-                        Row(
-                            modifier = Modifier.padding(8.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column {
-                                Text(text = "${item.method.displayName} • ${item.accountNo}", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                                Text(text = item.timeFormatted, color = Slate400, fontSize = 9.sp)
+                        Column(modifier = Modifier.padding(10.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column {
+                                    Text(text = "${item.method.displayName} • ${item.accountNo}", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    Text(text = item.timeFormatted, color = Slate400, fontSize = 9.sp)
+                                }
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(text = "৳%,.0f".format(item.amount), color = if (isRejected) Color(0xFFFF8A80) else GoldLight, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Surface(
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = if (isRejected) Color(0xFF3B151A) else Color(item.status.colorHex).copy(alpha = 0.2f),
+                                        border = if (isRejected) BorderStroke(0.8.dp, Color(0xFFFF5252)) else null
+                                    ) {
+                                        Text(
+                                            text = if (language == AppLanguage.BN) item.status.bn else item.status.en,
+                                            color = Color(item.status.colorHex),
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                }
                             }
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(text = "৳%,.0f".format(item.amount), color = GoldLight, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                                Spacer(modifier = Modifier.width(8.dp))
+
+                            if (isRejected) {
+                                Spacer(modifier = Modifier.height(6.dp))
                                 Surface(
                                     shape = RoundedCornerShape(6.dp),
-                                    color = Color(item.status.colorHex).copy(alpha = 0.2f)
+                                    color = Color(0xFF2E1215),
+                                    border = BorderStroke(0.8.dp, Color(0xFFFF5252).copy(alpha = 0.7f)),
+                                    modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    Text(
-                                        text = if (language == AppLanguage.BN) item.status.bn else item.status.en,
-                                        color = Color(item.status.colorHex),
-                                        fontSize = 9.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                    )
+                                    Column(modifier = Modifier.padding(8.dp)) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Icon(Icons.Default.ErrorOutline, contentDescription = null, tint = Color(0xFFFF5252), modifier = Modifier.size(13.dp))
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                                Text(
+                                                    text = if (language == AppLanguage.BN) "রিজেক্ট এর কারণ:" else "Reason:",
+                                                    color = Color(0xFFFF8A80),
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                            }
+                                            Text(
+                                                text = if (language == AppLanguage.BN) "রিজেক্ট এর কারণ দেখুন ➜" else "View Details ➜",
+                                                color = Color(0xFFFF8A80),
+                                                fontSize = 9.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.height(2.dp))
+                                        Text(
+                                            text = resolvedReason,
+                                            color = Color.White,
+                                            fontSize = 11.sp,
+                                            lineHeight = 15.sp
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
+                }
+
+                if (selectedWdForReason != null) {
+                    val wd = selectedWdForReason!!
+                    val note = if (wd.rejectReason.isNotBlank()) wd.rejectReason else "ভুল একাউন্ট নম্বর বা তথ্যের অমিলের কারণে উত্তোলন বাতিল করা হয়েছে। ব্যালেন্স ফেরত দেওয়া হয়েছে।"
+                    AlertDialog(
+                        onDismissRequest = { selectedWdForReason = null },
+                        containerColor = Color(0xFF131D31),
+                        shape = RoundedCornerShape(16.dp),
+                        title = {
+                            Text("উত্তোলন রিজেক্ট এর কারণ", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        },
+                        text = {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text("পরিমাণ: ৳%,.0f (${wd.method.displayName})".format(wd.amount), color = Color(0xFFFFD54F), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = Color(0xFF2E1215),
+                                    border = BorderStroke(1.dp, Color(0xFFFF5252)),
+                                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
+                                ) {
+                                    Text(text = note, color = Color.White, fontSize = 12.sp, modifier = Modifier.padding(10.dp))
+                                }
+                            }
+                        },
+                        confirmButton = {
+                            Button(
+                                onClick = { selectedWdForReason = null },
+                                colors = ButtonDefaults.buttonColors(containerColor = GoldPrimary, contentColor = Color.Black)
+                            ) {
+                                Text("ঠিক আছে", fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    )
                 }
                 Spacer(modifier = Modifier.height(6.dp))
             }

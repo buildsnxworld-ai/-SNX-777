@@ -7,6 +7,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import com.example.model.PaymentMethod
+import com.example.model.TransactionRecord
 import com.example.model.TransactionStatus
 import com.example.model.TransactionType
 import kotlinx.coroutines.CoroutineScope
@@ -180,7 +181,9 @@ object SharedDataStore {
         newStatus: String,
         amount: Double,
         userPhone: String,
-        username: String
+        username: String,
+        reason: String = "",
+        trxId: String = ""
     ) {
         scope.launch {
             val extras = Bundle().apply {
@@ -189,11 +192,23 @@ object SharedDataStore {
                 putDouble("amount", amount)
                 putString("user_phone", userPhone)
                 putString("username", username)
+                putString("reason", reason)
+                putString("trxId", trxId)
             }
+
+            val broadPayload = JSONObject().apply {
+                put("request_id", requestId)
+                put("status", newStatus)
+                put("amount", amount)
+                put("user_phone", userPhone)
+                put("username", username)
+                put("reason", reason)
+                put("trxId", trxId)
+            }.toString()
 
             safeCall(context, GAME_PROVIDER_URI, "UPDATE_DEPOSIT_STATUS", null, extras)
 
-            sendExplicitBroadcast(context, GAME_PACKAGE, "UPDATE_DEPOSIT_STATUS", requestId)
+            sendExplicitBroadcast(context, GAME_PACKAGE, "UPDATE_DEPOSIT_STATUS", broadPayload)
             broadcastAndSync(context)
         }
     }
@@ -430,44 +445,102 @@ object SharedDataStore {
                         val sessionMgr = SessionManager(context)
                         val userSession = sessionMgr.getUserSession()
                         if (userSession.isLoggedIn) {
-                            val localTxs = sessionMgr.getTransactions() ?: emptyList()
+                            val localTxs = (sessionMgr.getTransactions() ?: emptyList()).toMutableList()
                             val depArray = JSONArray(mergedDep)
+                            val creditedSet = sessionPrefs.getStringSet("key_credited_deposit_ids", emptySet())?.toMutableSet() ?: mutableSetOf()
                             var balanceToAdd = 0.0
+                            var depToAdd = 0.0
                             var updatedAny = false
 
-                            val updatedTxs = localTxs.map { tx ->
-                                if (tx.type == TransactionType.DEPOSIT && tx.status == TransactionStatus.PENDING) {
-                                    var matchedStatus: TransactionStatus? = null
-                                    for (i in 0 until depArray.length()) {
-                                        val dObj = depArray.getJSONObject(i)
-                                        val dId = dObj.optString("id")
-                                        val dTrx = dObj.optString("trxId")
-                                        if (dId == tx.id || (dTrx.isNotBlank() && dTrx.equals(tx.trxId, ignoreCase = true))) {
-                                            matchedStatus = TransactionStatus.valueOf(dObj.getString("status"))
-                                            break
+                            for (i in 0 until depArray.length()) {
+                                val dObj = depArray.getJSONObject(i)
+                                val dId = dObj.optString("id")
+                                val dTrx = dObj.optString("trxId").trim()
+                                val dStatus = dObj.optString("status")
+                                val dPhone = dObj.optString("userPhone").trim()
+                                val dUser = dObj.optString("username").trim()
+                                val dAmount = dObj.optDouble("amount", 0.0)
+
+                                val phoneMatches = userSession.phone.isNotBlank() && dPhone.isNotBlank() &&
+                                        (userSession.phone == dPhone || userSession.phone.endsWith(dPhone) || dPhone.endsWith(userSession.phone))
+                                val userMatches = userSession.username.isNotBlank() && dUser.isNotBlank() &&
+                                        userSession.username.equals(dUser, ignoreCase = true)
+
+                                if (phoneMatches || userMatches) {
+                                    if (dStatus == "APPROVED" && !creditedSet.contains(dId) && (dTrx.isBlank() || !creditedSet.contains(dTrx))) {
+                                        val bonus = if (dAmount >= 300.0) dAmount * 0.05 else 0.0
+                                        balanceToAdd += (dAmount + bonus)
+                                        depToAdd += dAmount
+                                        creditedSet.add(dId)
+                                        if (dTrx.isNotBlank()) creditedSet.add(dTrx)
+                                        updatedAny = true
+
+                                        // Update status in localTxs
+                                        val txIndex = localTxs.indexOfFirst {
+                                            it.id == dId || (dTrx.isNotBlank() && it.trxId.equals(dTrx, ignoreCase = true)) ||
+                                                    (it.type == TransactionType.DEPOSIT && it.status == TransactionStatus.PENDING && it.amount == dAmount)
+                                        }
+                                        if (txIndex != -1) {
+                                            localTxs[txIndex] = localTxs[txIndex].copy(status = TransactionStatus.APPROVED)
+                                        } else {
+                                            localTxs.add(
+                                                0,
+                                                TransactionRecord(
+                                                    id = dId,
+                                                    type = TransactionType.DEPOSIT,
+                                                    method = try { PaymentMethod.valueOf(dObj.optString("method", "BKASH")) } catch (_: Exception) { PaymentMethod.BKASH },
+                                                    amount = dAmount,
+                                                    accountNo = dObj.optString("userAccountNo", ""),
+                                                    trxId = dTrx,
+                                                    status = TransactionStatus.APPROVED,
+                                                    timeFormatted = dObj.optString("createdAt", "Recent"),
+                                                    username = dUser,
+                                                    userPhone = dPhone
+                                                )
+                                            )
+                                        }
+                                    } else if (dStatus == "REJECTED") {
+                                        val note = dObj.optString("reviewNote", "")
+                                        val txIndex = localTxs.indexOfFirst {
+                                            it.id == dId || (dTrx.isNotBlank() && it.trxId.equals(dTrx, ignoreCase = true))
+                                        }
+                                        if (txIndex != -1) {
+                                            if (localTxs[txIndex].status != TransactionStatus.REJECTED || (note.isNotBlank() && localTxs[txIndex].rejectReason != note)) {
+                                                localTxs[txIndex] = localTxs[txIndex].copy(
+                                                    status = TransactionStatus.REJECTED,
+                                                    rejectReason = if (note.isNotBlank()) note else localTxs[txIndex].rejectReason
+                                                )
+                                                updatedAny = true
+                                            }
+                                        } else {
+                                            localTxs.add(
+                                                0,
+                                                TransactionRecord(
+                                                    id = dId,
+                                                    type = TransactionType.DEPOSIT,
+                                                    method = try { PaymentMethod.valueOf(dObj.optString("method", "BKASH")) } catch (_: Exception) { PaymentMethod.BKASH },
+                                                    amount = dAmount,
+                                                    accountNo = dObj.optString("userAccountNo", ""),
+                                                    trxId = dTrx,
+                                                    status = TransactionStatus.REJECTED,
+                                                    timeFormatted = dObj.optString("createdAt", "Recent"),
+                                                    username = dUser,
+                                                    userPhone = dPhone,
+                                                    rejectReason = note
+                                                )
+                                            )
+                                            updatedAny = true
                                         }
                                     }
-                                    if (matchedStatus == TransactionStatus.APPROVED) {
-                                        val bonus = if (tx.amount >= 300.0) tx.amount * 0.05 else 0.0
-                                        balanceToAdd += (tx.amount + bonus)
-                                        updatedAny = true
-                                        tx.copy(status = TransactionStatus.APPROVED)
-                                    } else if (matchedStatus == TransactionStatus.REJECTED) {
-                                        updatedAny = true
-                                        tx.copy(status = TransactionStatus.REJECTED)
-                                    } else {
-                                        tx
-                                    }
-                                } else {
-                                    tx
                                 }
                             }
 
                             if (updatedAny) {
-                                sessionMgr.saveTransactions(updatedTxs)
+                                sessionPrefs.edit().putStringSet("key_credited_deposit_ids", creditedSet).apply()
+                                sessionMgr.saveTransactions(localTxs)
                                 if (balanceToAdd > 0.0) {
                                     val newBal = userSession.balanceBDT + balanceToAdd
-                                    val newDep = userSession.totalDeposited + (balanceToAdd / 1.05)
+                                    val newDep = userSession.totalDeposited + depToAdd
                                     sessionMgr.saveUserSession(userSession.copy(balanceBDT = newBal, totalDeposited = newDep))
                                 }
                             }
@@ -529,12 +602,20 @@ object SharedDataStore {
 
                     // Also immediately update active logged-in user's balance and status if matched
                     val loggedInPhone = sessionPrefs.getString("key_phone", "") ?: ""
-                    if (loggedInPhone.isNotBlank()) {
+                    val loggedInUsername = sessionPrefs.getString("key_username", "") ?: ""
+                    if (loggedInPhone.isNotBlank() || loggedInUsername.isNotBlank()) {
                         try {
                             val arr = JSONArray(mergedUsers)
                             for (i in 0 until arr.length()) {
                                 val u = arr.getJSONObject(i)
-                                if (u.optString("phone") == loggedInPhone) {
+                                val uPhone = u.optString("phone", "")
+                                val uName = u.optString("username", "")
+                                val pMatch = loggedInPhone.isNotBlank() && uPhone.isNotBlank() &&
+                                        (loggedInPhone == uPhone || loggedInPhone.endsWith(uPhone) || uPhone.endsWith(loggedInPhone))
+                                val nMatch = loggedInUsername.isNotBlank() && uName.isNotBlank() &&
+                                        loggedInUsername.equals(uName, ignoreCase = true)
+
+                                if (pMatch || nMatch) {
                                     val bal = u.optDouble("balanceBDT", -1.0)
                                     val status = u.optString("status", "ACTIVE")
                                     val totalDep = u.optDouble("totalDeposited", -1.0)

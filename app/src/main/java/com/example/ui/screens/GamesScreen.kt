@@ -137,6 +137,7 @@ fun GamesScreen(
 
         // New HOT GAMES Section (Replacing previous games listing completely)
         com.example.ui.components.HotGamesSection(
+            games = games,
             onOpenAviator = {
                 if (userProfile?.isLoggedIn != true) {
                     onOpenAuth?.invoke(1)
@@ -156,6 +157,7 @@ fun GamesScreen(
 
         // LIVE CASINO, SPORTS & SLOTS Section (From User Screenshots)
         com.example.ui.components.CasinoSectionsComponent(
+            games = games,
             onOpenGame = { gameId -> onOpenGame(gameId) }
         )
 

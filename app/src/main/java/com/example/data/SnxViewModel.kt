@@ -19,13 +19,23 @@ import com.example.util.StringRes
 class SnxViewModel(application: Application) : AndroidViewModel(application) {
 
     private val sessionManager = SessionManager(application)
+    private val adminPrefs = SharedDataStore.getAdminPrefs(application)
 
-    private val prefListener = SharedPreferences.OnSharedPreferenceChangeListener { _, _ ->
+    private val prefListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
         val updated = sessionManager.getUserSession()
         _userProfile.value = updated
         sessionManager.getTransactions()?.let { saved ->
             val realOnly = saved.filterNot { it.id in setOf("TX9841", "TX9820", "TX9755") }
             _transactions.value = realOnly
+        }
+    }
+
+    private val adminPrefListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+        if (key == "key_games_list_json" || key == null) {
+            _dynamicGames.value = loadGamesFromPrefs()
+        }
+        if (key == "key_site_config_json" || key == null) {
+            _siteConfig.value = loadSiteConfigFromPrefs()
         }
     }
 
@@ -80,8 +90,28 @@ class SnxViewModel(application: Application) : AndroidViewModel(application) {
 
     // All available default games
     val allGames: List<GameItem> = listOf(
-        GameItem("slot_777", "মেগা জ্যাকপট ৭৭৭", "Mega Jackpot 777", GameCategory.SLOTS, "HOT", "🎰", 10.0, 3420),
+        GameItem("super_ace", "সুপার এস (Super Ace)", "Super Ace", GameCategory.SLOTS, "HOT", "🃏", 10.0, 5420),
         GameItem("aviator_crash", "SPRIBE AVIATOR", "SPRIBE AVIATOR", GameCategory.CRASH, "HOT", "✈️", 50.0, 9480),
+        GameItem("slot_fortune_gems_3", "ফরচুন জেমস ৩", "Fortune Gems 3", GameCategory.SLOTS, "HOT", "💎", 10.0, 4890),
+        GameItem("flyx", "ফ্লাইএক্স (FlyX)", "FlyX Crash", GameCategory.CRASH, "HOT", "🚀", 20.0, 3750),
+        GameItem("boxing_king", "বক্সিং কিং", "Boxing King", GameCategory.HOT, "HOT", "🥊", 10.0, 4120),
+        GameItem("mighty_sevens", "মাইটি সেভেন্স ৭৭৭", "Mighty Sevens 777", GameCategory.SLOTS, "JACKPOT", "🎰", 10.0, 5210),
+        GameItem("crazy_time", "ক্রেজি টাইম শো", "Crazy Time Live Show", GameCategory.CASINO, "LIVE", "🎪", 50.0, 6200),
+        GameItem("live_playtech", "প্লেটেক লাইভ ডিলার", "Playtech Live Casino", GameCategory.CASINO, "LIVE", "💃", 50.0, 3180),
+        GameItem("live_w_casino", "ডাব্লিউ ক্যাসিনো ভিআইপি", "W Casino Live Dealer", GameCategory.CASINO, "LIVE", "👑", 50.0, 2940),
+        GameItem("sports_9wickets", "৯উইকেটস ক্রিকেট ব্যাটিং", "9Wickets Cricket", GameCategory.SPORTS, "LIVE", "🏏", 50.0, 4120),
+        GameItem("sports_lucky", "লাকি স্পোর্টস ক্রিকেট", "Lucky Sports Cricket", GameCategory.SPORTS, "LIVE", "🔴", 50.0, 3620),
+        GameItem("sports_saba", "সাবা স্পোর্টস ক্রিকেট", "Saba Sports Cricket", GameCategory.SPORTS, "LIVE", "🧤", 50.0, 2890),
+        GameItem("slot_anubis_wrath", "আনুবিস রথ স্লট", "Anubis Wrath", GameCategory.SLOTS, "JACKPOT", "🏺", 20.0, 3450),
+        GameItem("slot_777_rocket", "রকেট ৭৭৭ স্লট", "777 Rocket", GameCategory.SLOTS, "HOT", "🚀", 10.0, 4200),
+        GameItem("fortune_garuda", "ফরচুন গারুদা ৫০০", "Fortune Garuda 500", GameCategory.SLOTS, "POPULAR", "🦅", 20.0, 2760),
+        GameItem("ludo_quick", "লুডু কুইক গেম", "Ludo Quick", GameCategory.TABLE, "POPULAR", "🎲", 10.0, 3950),
+        GameItem("andar_bahar", "আন্দার বাহার লাইভ", "Andar Bahar Live", GameCategory.CASINO, "HOT", "🎴", 20.0, 2410),
+        GameItem("cards_32", "৩২ কার্ডস রয়েল", "32 Cards Royal", GameCategory.TABLE, null, "🃏", 10.0, 1890),
+        GameItem("thai_hi_lo", "থাই হাই-লো ডাইস", "Thai Hi-Lo Dice", GameCategory.TABLE, null, "🎲", 10.0, 1620),
+        GameItem("thai_fish_prawn_crab", "ফিশ প্রন ক্র্যাব", "Fish Prawn Crab", GameCategory.HOT, "POPULAR", "🦐", 10.0, 2350),
+        GameItem("athena_rising", "অ্যাথেনা রাইজিং", "Athena Rising", GameCategory.SLOTS, "JACKPOT", "⚡", 20.0, 3120),
+        GameItem("slot_777", "মেগা জ্যাকপট ৭৭৭", "Mega Jackpot 777", GameCategory.SLOTS, "HOT", "🎰", 10.0, 3420),
         GameItem("cricket_live", "বিপিএল ক্রিকেট লাইভ প্রেডিকশন", "BPL Cricket Live", GameCategory.SPORTS, "LIVE", "🏏", 50.0, 4120),
         GameItem("lucky_wheel", "দৈনিক লাকি স্পিন হুইল", "Daily Lucky Spin", GameCategory.HOT, "BONUS", "🎡", 0.0, 8910),
         GameItem("teen_patti", "তিন পাত্তি রয়েল", "Teen Patti Royal", GameCategory.CASINO, "HOT", "🃏", 20.0, 1850),
@@ -90,8 +120,7 @@ class SnxViewModel(application: Application) : AndroidViewModel(application) {
         GameItem("roulette_pro", "ইউরোপিয়ান রুলেট", "European Roulette", GameCategory.TABLE, null, "🎯", 50.0, 1150),
         GameItem("fish_hunter", "ওশান কিং ফিশ শুটার", "Ocean King Fish Hunter", GameCategory.HOT, "POPULAR", "🐟", 10.0, 1640),
         GameItem("dice_roll", "লাকি ডাইস হাই-লো", "Lucky Dice Hi-Lo", GameCategory.TABLE, null, "🎲", 10.0, 820),
-        GameItem("gold_rush_slot", "গোল্ড রাশ মেগাওয়েস", "Gold Rush Megaways", GameCategory.SLOTS, "JACKPOT", "💰", 20.0, 2740),
-        GameItem("crazy_time", "ক্রেজি টাইম শো", "Crazy Time Live Show", GameCategory.CASINO, "LIVE", "🎪", 50.0, 6200)
+        GameItem("gold_rush_slot", "গোল্ড রাশ মেগাওয়েস", "Gold Rush Megaways", GameCategory.SLOTS, "JACKPOT", "💰", 20.0, 2740)
     )
 
     private val _dynamicGames = MutableStateFlow<List<GameItem>>(emptyList())
@@ -130,6 +159,9 @@ class SnxViewModel(application: Application) : AndroidViewModel(application) {
 
         // Listen for preference changes (e.g., when Admin approves deposit or adjusts balance)
         sessionManager.registerListener(prefListener)
+        try {
+            adminPrefs.registerOnSharedPreferenceChangeListener(adminPrefListener)
+        } catch (_: Exception) {}
 
         // Listen for cross-app live sync events
         viewModelScope.launch {
@@ -143,20 +175,7 @@ class SnxViewModel(application: Application) : AndroidViewModel(application) {
             while (true) {
                 delay(2500)
                 SharedDataStore.pullFromOtherApp(getApplication())
-            }
-        }
-
-        // Auto-persist user profile updates to session manager (like cookies)
-        viewModelScope.launch {
-            _userProfile.collect { profile ->
-                sessionManager.saveUserSession(profile)
-            }
-        }
-
-        // Auto-persist transactions history
-        viewModelScope.launch {
-            _transactions.collect { list ->
-                sessionManager.saveTransactions(list)
+                SnxCloudSyncService.pullFromCloud(getApplication())
             }
         }
 
@@ -226,13 +245,29 @@ class SnxViewModel(application: Application) : AndroidViewModel(application) {
             return
         }
 
-        // 1. SUPER ACE - Full Interactive Playable Game (Preserved exactly as requested)
+        // 1. FREE BONUS CHORKI (LUCKY WHEEL)
+        if (gameId == "lucky_wheel") {
+            if (!_userProfile.value.isLoggedIn) {
+                showToast(
+                    if (_language.value == AppLanguage.BN)
+                        "ফ্রি বোনাস নিতে অনুগ্রহ করে প্রথমে বিনামূল্যে রেজিস্ট্রেশন অথবা লগইন করুন"
+                    else
+                        "Please register or login to spin the free bonus wheel"
+                )
+                openAuthModal(1)
+                return
+            }
+            _activeModalGame.value = "lucky_wheel"
+            return
+        }
+
+        // 2. SUPER ACE
         if (gameId == "super_ace") {
             _activeModalGame.value = "super_ace"
             return
         }
 
-        // 2. SPRIBE AVIATOR - Full Interactive Playable Game (Preserved exactly as requested)
+        // 3. SPRIBE AVIATOR
         if (gameId == "aviator_crash") {
             if (!_userProfile.value.isLoggedIn) {
                 showToast(
@@ -248,9 +283,26 @@ class SnxViewModel(application: Application) : AndroidViewModel(application) {
             return
         }
 
-        // 3. ALL OTHER GAMES: As requested by user, only Super Ace & Spribe Aviator open.
-        // All other games display professional reasons:
-        // SERVER ERROR, SERVER MAINTENANCE, SERVER UPGRADE, SERVER OF, or NETWORK CONNECTION ERROR (with loading simulation).
+        // 4. Interactive playable games (Slots, Cricket, Dice, Dragon Tiger, etc.)
+        when (gameId) {
+            "slot_777", "gold_rush_slot", "fruit_frenzy", "cricket_live",
+            "dragon_tiger", "dice_roll", "teen_patti", "roulette_pro", "crazy_time", "fish_hunter" -> {
+                if (!_userProfile.value.isLoggedIn) {
+                    showToast(
+                        if (_language.value == AppLanguage.BN)
+                            "গেম খেলতে অনুগ্রহ করে প্রথমে একাউন্ট রেজিস্ট্রেশন বা লগইন করুন"
+                        else
+                            "Please register or login first to play"
+                    )
+                    openAuthModal(1)
+                    return
+                }
+                _activeModalGame.value = gameId
+                return
+            }
+        }
+
+        // 5. External third-party / provider games that show status notice
         val game = _dynamicGames.value.firstOrNull { it.id == gameId }
             ?: allGames.firstOrNull { it.id == gameId }
             ?: createDynamicGameItem(gameId)
@@ -264,23 +316,23 @@ class SnxViewModel(application: Application) : AndroidViewModel(application) {
             GameServerStatus.OFFLINE,
             GameServerStatus.NETWORK_ERROR -> game.serverStatus
             else -> {
-                // Realistic status distribution across games
+                // Realistic status distribution across third-party games
                 when (gameId) {
-                    "athena_rising", "wild_athena_rising", "dragon_tiger", "gold_rush_slot", "lucky_wheel",
+                    "athena_rising", "wild_athena_rising",
                     "slot_fortune_gems", "slot_fortune_gems_3", "fortune_garuda", "slot_lucky_neko" -> GameServerStatus.NETWORK_ERROR
 
-                    "flyx", "cricket_live", "dice_roll", "sports_9wickets", "sports_lucky", "sports_saba",
+                    "flyx", "sports_9wickets", "sports_lucky", "sports_saba",
                     "boxing_king", "live_evolution_gaming" ->
                         GameServerStatus.SERVER_MAINTENANCE
 
-                    "pirate_legends", "roulette_pro", "slot_clover_coins", "slot_wild_bandito", "slot_fortuna_garuda",
+                    "pirate_legends", "slot_clover_coins", "slot_wild_bandito", "slot_fortuna_garuda",
                     "mighty_sevens", "slot_mighty_sevens" ->
                         GameServerStatus.SERVER_UPGRADE
 
-                    "slot_777", "slot_777_rocket", "fruit_frenzy", "crazy_time", "slot_lucky_jaguar", "slot_poker_win", "slot_money_coming" ->
+                    "slot_777_rocket", "slot_lucky_jaguar", "slot_poker_win", "slot_money_coming" ->
                         GameServerStatus.SERVER_OFF
 
-                    else -> GameServerStatus.SERVER_ERROR // slot_anubis_wrath, wild_bounty_showdown, teen_patti, fish_hunter, live dealers, etc.
+                    else -> GameServerStatus.SERVER_ERROR // slot_anubis_wrath, wild_bounty_showdown, etc.
                 }
             }
         }
@@ -450,6 +502,7 @@ class SnxViewModel(application: Application) : AndroidViewModel(application) {
         )
         sessionManager.saveRegisteredAccount(newAccount)
         SharedDataStore.notifyUserRegistered(getApplication(), newAccount)
+        SnxCloudSyncService.pushUserRegisteredDirect(getApplication(), newAccount)
 
         // Set active user profile with exactly 0.0 balance (disable automatic 7 taka)
         _userProfile.value = UserProfile(
@@ -539,6 +592,7 @@ class SnxViewModel(application: Application) : AndroidViewModel(application) {
             return false
         }
 
+        val cleanTrxId = trxId.trim().uppercase()
         val currentTime = SimpleDateFormat("dd MMM, hh:mm a", Locale.getDefault()).format(Date())
         val record = TransactionRecord(
             id = "TX" + (1000..9999).random(),
@@ -546,7 +600,7 @@ class SnxViewModel(application: Application) : AndroidViewModel(application) {
             method = method,
             amount = amount,
             accountNo = accountNo,
-            trxId = trxId.uppercase(),
+            trxId = cleanTrxId,
             status = TransactionStatus.PENDING, // Pending until verified and approved by Admin
             timeFormatted = currentTime,
             username = _userProfile.value.username,
@@ -560,12 +614,12 @@ class SnxViewModel(application: Application) : AndroidViewModel(application) {
             val adminMgr = AdminManager.getInstance(getApplication())
             adminMgr.submitUserDepositRequest(
                 username = _userProfile.value.username,
-                userPhone = _userProfile.value.phone,
+                userPhone = _userProfile.value.phone.trim(),
                 method = method,
                 amount = amount,
                 agentNumberUsed = adminMgr.getActiveDepositNumber(method),
                 userAccountNo = accountNo,
-                trxId = trxId
+                trxId = cleanTrxId
             )
         } catch (_: Exception) {}
 
@@ -647,7 +701,9 @@ class SnxViewModel(application: Application) : AndroidViewModel(application) {
 
     fun adjustBalance(delta: Double) {
         _userProfile.update {
-            it.copy(balanceBDT = (it.balanceBDT + delta).coerceAtLeast(0.0))
+            val updated = it.copy(balanceBDT = (it.balanceBDT + delta).coerceAtLeast(0.0))
+            sessionManager.saveUserSession(updated)
+            updated
         }
     }
 
@@ -814,7 +870,8 @@ class SnxViewModel(application: Application) : AndroidViewModel(application) {
                         playersCount = obj.optInt("playersCount", 1420),
                         imageUrl = obj.optString("imageUrl", ""),
                         isActive = obj.optBoolean("isActive", true),
-                        serverStatus = GameServerStatus.fromCode(obj.optString("serverStatus", "ACTIVE"))
+                        serverStatus = GameServerStatus.fromCode(obj.optString("serverStatus", "ACTIVE")),
+                        thumbnailFitMode = obj.optString("thumbnailFitMode", "CROP")
                     )
                 )
             }
@@ -827,6 +884,9 @@ class SnxViewModel(application: Application) : AndroidViewModel(application) {
     override fun onCleared() {
         super.onCleared()
         sessionManager.unregisterListener(prefListener)
+        try {
+            adminPrefs.unregisterOnSharedPreferenceChangeListener(adminPrefListener)
+        } catch (_: Exception) {}
     }
 }
 

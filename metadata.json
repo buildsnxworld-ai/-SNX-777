@@ -1,6 +1,6 @@
 {
-  "name": "SNX 777",
-  "description": "SNX 777 - Premium Online Casino & Spribe Aviator Gaming Platform",
+  "name": "SNX PANEL",
+  "description": "SNX PANEL - Central Management & Cloud Control Console",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

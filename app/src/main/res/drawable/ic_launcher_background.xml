@@ -5,19 +5,25 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+    <!-- Dark Cyber-Fintech Obsidian Base -->
     <path
         android:pathData="M0,0h108v108h-108z">
         <aapt:attr name="android:fillColor">
             <gradient
                 android:angle="315"
-                android:startColor="#1A0D00"
-                android:centerColor="#0B0E14"
-                android:endColor="#2A1B02"
+                android:startColor="#0A0E1A"
+                android:centerColor="#0F172A"
+                android:endColor="#050B14"
                 android:type="linear" />
         </aapt:attr>
     </path>
+    <!-- Geometric Tech Grid Background -->
     <path
-        android:strokeColor="#33FFD700"
+        android:strokeColor="#1500E676"
         android:strokeWidth="1"
-        android:pathData="M10,10 L98,10 L98,98 L10,98 Z" />
+        android:pathData="M18,18 L90,18 L90,90 L18,90 Z" />
+    <path
+        android:strokeColor="#1038BDF8"
+        android:strokeWidth="0.8"
+        android:pathData="M54,12 L54,96 M12,54 L96,54" />
 </vector>

@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+
+    <!-- Background Badge -->
+    <path
+        android:pathData="M60,8 L106,24 L106,62 C106,92 60,114 60,114 C60,114 14,92 14,62 L14,24 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:angle="270"
+                android:startColor="#162238"
+                android:endColor="#0B101D"
+                android:type="linear" />
+        </aapt:attr>
+    </path>
+
+    <!-- Outer Emerald Border -->
+    <path
+        android:strokeColor="#00E676"
+        android:strokeWidth="2.8"
+        android:pathData="M60,8 L106,24 L106,62 C106,92 60,114 60,114 C60,114 14,92 14,62 L14,24 Z" />
+
+    <!-- Inner Cyan Accent -->
+    <path
+        android:strokeColor="#38BDF8"
+        android:strokeWidth="1.5"
+        android:pathData="M60,15 L99,28 L99,60 C99,86 60,105 60,105 C60,105 21,86 21,60 L21,28 Z" />
+
+    <!-- Gold Crown Header -->
+    <path
+        android:fillColor="#FFD54F"
+        android:pathData="M60,18 L63,24 L69,24 L64,28 L66,34 L60,30 L54,34 L56,28 L51,24 L57,24 Z" />
+
+    <!-- Control Sliders -->
+    <path
+        android:strokeColor="#334155"
+        android:strokeWidth="3.5"
+        android:strokeLineCap="round"
+        android:pathData="M42,42 L78,42" />
+
+    <path
+        android:strokeColor="#00E676"
+        android:strokeWidth="3.5"
+        android:strokeLineCap="round"
+        android:pathData="M42,42 L58,42" />
+
+    <path
+        android:fillColor="#00E676"
+        android:pathData="M58,42 m-4.5,0 a4.5,4.5 0 1,1 9,0 a4.5,4.5 0 1,1 -9,0" />
+
+    <path
+        android:strokeColor="#334155"
+        android:strokeWidth="3.5"
+        android:strokeLineCap="round"
+        android:pathData="M42,56 L78,56" />
+
+    <path
+        android:strokeColor="#38BDF8"
+        android:strokeWidth="3.5"
+        android:strokeLineCap="round"
+        android:pathData="M42,56 L68,56" />
+
+    <path
+        android:fillColor="#38BDF8"
+        android:pathData="M68,56 m-4.5,0 a4.5,4.5 0 1,1 9,0 a4.5,4.5 0 1,1 -9,0" />
+
+    <!-- Lock & Keyhole Core -->
+    <path
+        android:fillColor="#FFD54F"
+        android:pathData="M60,68 m-5,0 a5,5 0 1,1 10,0 a5,5 0 1,1 -10,0" />
+
+    <path
+        android:fillColor="#FFD54F"
+        android:pathData="M58,70 L62,70 L64,82 L56,82 Z" />
+
+    <!-- Terminal Status Lights -->
+    <path
+        android:fillColor="#00E676"
+        android:pathData="M30,32 m-2,0 a2,2 0 1,1 4,0 a2,2 0 1,1 -4,0" />
+
+    <path
+        android:fillColor="#38BDF8"
+        android:pathData="M90,32 m-2,0 a2,2 0 1,1 4,0 a2,2 0 1,1 -4,0" />
+
+</vector>

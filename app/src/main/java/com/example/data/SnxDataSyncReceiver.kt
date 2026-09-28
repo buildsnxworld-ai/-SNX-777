@@ -5,7 +5,9 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import com.example.model.PaymentMethod
+import com.example.model.TransactionRecord
 import com.example.model.TransactionStatus
+import com.example.model.TransactionType
 import org.json.JSONObject
 
 /**
@@ -26,6 +28,70 @@ class SnxDataSyncReceiver : BroadcastReceiver() {
 
             try {
                 when (actionType) {
+                    "UPDATE_DEPOSIT_STATUS" -> {
+                        if (dataPayload.isNotEmpty()) {
+                            try {
+                                val obj = if (dataPayload.startsWith("{")) JSONObject(dataPayload) else JSONObject().apply { put("request_id", dataPayload); put("status", "APPROVED") }
+                                val reqId = obj.optString("request_id")
+                                val newStatus = obj.optString("status", "APPROVED")
+                                val amount = obj.optDouble("amount", 0.0)
+                                val phone = obj.optString("user_phone", "")
+                                val username = obj.optString("username", "")
+                                val reason = obj.optString("reason", "")
+                                val trxId = obj.optString("trxId", "")
+
+                                val statusEnum = try { TransactionStatus.valueOf(newStatus) } catch (_: Exception) { TransactionStatus.APPROVED }
+                                AdminManager.getInstance(context).updateDepositStatusLocally(reqId, statusEnum, reason)
+
+                                if (newStatus == "APPROVED" && amount > 0.0) {
+                                    val sessionMgr = SessionManager(context)
+                                    val currentSession = sessionMgr.getUserSession()
+                                    val pMatch = phone.isNotBlank() && (currentSession.phone == phone || currentSession.phone.endsWith(phone) || phone.endsWith(currentSession.phone))
+                                    val uMatch = username.isNotBlank() && currentSession.username.equals(username, ignoreCase = true)
+                                    if (currentSession.isLoggedIn && (pMatch || uMatch || phone.isBlank())) {
+                                        sessionMgr.saveUserSession(
+                                            currentSession.copy(
+                                                balanceBDT = currentSession.balanceBDT + amount,
+                                                totalDeposited = currentSession.totalDeposited + amount
+                                            )
+                                        )
+                                    }
+
+                                    // Update registered accounts
+                                    val currentAccounts = sessionMgr.getRegisteredAccounts()
+                                    val updatedAccounts = currentAccounts.map { acc ->
+                                        if (acc.phone == phone || acc.username.equals(username, ignoreCase = true)) {
+                                            acc.copy(
+                                                balanceBDT = acc.balanceBDT + amount,
+                                                totalDeposited = acc.totalDeposited + amount
+                                            )
+                                        } else acc
+                                    }
+                                    sessionMgr.saveRegisteredAccounts(updatedAccounts)
+
+                                    // Update local transactions
+                                    val txs = sessionMgr.getTransactions() ?: emptyList()
+                                    val updatedTxs = txs.map { tx ->
+                                        val matchTrx = trxId.isNotBlank() && tx.trxId.equals(trxId, ignoreCase = true)
+                                        if (tx.type == TransactionType.DEPOSIT && (tx.id == reqId || matchTrx || (tx.status == TransactionStatus.PENDING && (phone.isBlank() || tx.userPhone == phone)))) {
+                                            tx.copy(status = TransactionStatus.APPROVED)
+                                        } else tx
+                                    }
+                                    sessionMgr.saveTransactions(updatedTxs)
+                                } else if (newStatus == "REJECTED") {
+                                    val sessionMgr = SessionManager(context)
+                                    val txs = sessionMgr.getTransactions() ?: emptyList()
+                                    val updatedTxs = txs.map { tx ->
+                                        val matchTrx = trxId.isNotBlank() && tx.trxId.equals(trxId, ignoreCase = true)
+                                        if (tx.type == TransactionType.DEPOSIT && (tx.id == reqId || matchTrx || (tx.status == TransactionStatus.PENDING && (phone.isBlank() || tx.userPhone == phone)))) {
+                                            tx.copy(status = TransactionStatus.REJECTED, rejectReason = reason)
+                                        } else tx
+                                    }
+                                    sessionMgr.saveTransactions(updatedTxs)
+                                }
+                            } catch (_: Exception) {}
+                        }
+                    }
                     "NEW_DEPOSIT" -> {
                         if (dataPayload.isNotEmpty()) {
                             val obj = JSONObject(dataPayload)

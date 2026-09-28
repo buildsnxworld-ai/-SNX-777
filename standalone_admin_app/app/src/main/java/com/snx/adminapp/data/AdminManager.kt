@@ -190,7 +190,8 @@ class AdminManager private constructor(context: Context) {
     // ==========================================
     private fun loadPaymentNumbers() {
         val raw = prefs.getString(KEY_PAYMENT_NUMBERS_JSON, null)
-        if (raw.isNullOrEmpty() || raw == "[]") {
+        val hasDummy = raw?.contains("01712-348901") == true || raw?.contains("01711-223344") == true
+        if (raw.isNullOrEmpty() || raw == "[]" || hasDummy) {
             val defaultList = createDefaultPaymentNumbers()
             _paymentNumbers.value = defaultList
             savePaymentNumbers(defaultList)
@@ -356,35 +357,35 @@ class AdminManager private constructor(context: Context) {
 
     private fun createDefaultPaymentNumbers(): List<AdminPaymentNumber> {
         val list = mutableListOf<AdminPaymentNumber>()
-        // 10 bKash numbers
+        // 10 bKash numbers (Populated with your real numbers from website)
         val bkashNumbers = listOf(
-            "01712-348901" to "bKash Agent 01 (Dhaka)",
-            "01823-456712" to "bKash Agent 02 (Banani)",
-            "01934-567823" to "bKash Agent 03 (Gulshan)",
-            "01345-678934" to "bKash Agent 04 (Chittagong)",
-            "01756-789045" to "bKash Agent 05 (Sylhet)",
-            "01867-890156" to "bKash Agent 06 (Rajshahi)",
-            "01978-901267" to "bKash Agent 07 (Khulna)",
-            "01389-012378" to "bKash Agent 08 (Barisal)",
-            "01790-123489" to "bKash Agent 09 (Rangpur)",
-            "01801-234590" to "bKash Agent 10 (Comilla)"
+            "01356033503" to "bKash Agent 01 (সক্রিয়)",
+            "01318097241" to "bKash Agent 02 (সক্রিয়)",
+            "01357287095" to "bKash Agent 03 (সক্রিয়)",
+            "01349782631" to "bKash Agent 04 (সক্রিয়)",
+            "01349845907" to "bKash Agent 05 (সক্রিয়)",
+            "01349845902" to "bKash Agent 06 (সক্রিয়)",
+            "01356033503" to "bKash Agent 07 (সক্রিয়)",
+            "01318097241" to "bKash Agent 08 (সক্রিয়)",
+            "01357287095" to "bKash Agent 09 (সক্রিয়)",
+            "01349782631" to "bKash Agent 10 (সক্রিয়)"
         )
         bkashNumbers.forEach { (num, lbl) ->
             list.add(AdminPaymentNumber(method = PaymentMethod.BKASH, number = num, agentLabel = lbl))
         }
 
-        // 10 Nagad numbers
+        // 10 Nagad numbers (Populated with your real numbers from website)
         val nagadNumbers = listOf(
-            "01711-223344" to "Nagad Merchant 01 (Motijheel)",
-            "01822-334455" to "Nagad Merchant 02 (Dhanmondi)",
-            "01933-445566" to "Nagad Merchant 03 (Uttara)",
-            "01344-556677" to "Nagad Merchant 04 (Mirpur)",
-            "01755-667788" to "Nagad Merchant 05 (Gazipur)",
-            "01866-778899" to "Nagad Merchant 06 (Narayanganj)",
-            "01977-889900" to "Nagad Merchant 07 (Bogra)",
-            "01388-990011" to "Nagad Merchant 08 (Jessore)",
-            "01799-001122" to "Nagad Merchant 09 (Mymensingh)",
-            "01810-112233" to "Nagad Merchant 10 (Cox's Bazar)"
+            "01357286400" to "Nagad Merchant 01 (সক্রিয়)",
+            "01356033503" to "Nagad Merchant 02 (সক্রিয়)",
+            "01318097241" to "Nagad Merchant 03 (সক্রিয়)",
+            "01357287095" to "Nagad Merchant 04 (সক্রিয়)",
+            "01349845888" to "Nagad Merchant 05 (সক্রিয়)",
+            "01349845906" to "Nagad Merchant 06 (সক্রিয়)",
+            "01349845907" to "Nagad Merchant 07 (সক্রিয়)",
+            "01349845902" to "Nagad Merchant 08 (সক্রিয়)",
+            "01357286400" to "Nagad Merchant 09 (সক্রিয়)",
+            "01356033503" to "Nagad Merchant 10 (সক্রিয়)"
         )
         nagadNumbers.forEach { (num, lbl) ->
             list.add(AdminPaymentNumber(method = PaymentMethod.NAGAD, number = num, agentLabel = lbl))
@@ -1072,6 +1073,15 @@ class AdminManager private constructor(context: Context) {
     fun updateGame(updated: GameItem): Boolean {
         val list = _gamesList.value.map {
             if (it.id == updated.id) updated else it
+        }
+        _gamesList.value = list
+        saveGamesListDirect(list)
+        return true
+    }
+
+    fun updateGameTheme(gameId: String, newImageUrl: String): Boolean {
+        val list = _gamesList.value.map {
+            if (it.id == gameId) it.copy(imageUrl = newImageUrl.trim()) else it
         }
         _gamesList.value = list
         saveGamesListDirect(list)

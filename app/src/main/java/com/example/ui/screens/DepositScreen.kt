@@ -41,9 +41,8 @@ import com.example.R
 import com.example.data.AdminManager
 import com.example.data.SharedDataStore
 import com.example.data.SnxCloudSyncService
-import com.example.model.AppLanguage
-import com.example.model.PaymentMethod
-import com.example.model.UserProfile
+import com.example.model.*
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.ui.theme.*
 import com.example.util.StringRes
 import kotlinx.coroutines.delay
@@ -55,14 +54,19 @@ fun DepositScreen(
     onSubmitDeposit: (PaymentMethod, Double, String, String) -> Boolean,
     onShowToast: (String) -> Unit,
     onOpenAuth: ((Int) -> Unit)? = null,
+    transactions: List<TransactionRecord> = emptyList(),
+    onOpenSupport: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
+    val adminManager = remember { AdminManager.getInstance(context) }
+    val dynamicPaymentNumbers by adminManager.paymentNumbers.collectAsStateWithLifecycle()
 
     var selectedMethod by remember { mutableStateOf(PaymentMethod.BKASH) }
 
+    // Permanent hardcoded fallback lists (retained as instructed)
     val bkashNumbersList = remember {
         listOf(
             "01356033503",
@@ -87,8 +91,18 @@ fun DepositScreen(
         )
     }
 
-    var bkashIndex by remember { mutableStateOf((0 until bkashNumbersList.size).random()) }
-    var nagadIndex by remember { mutableStateOf((0 until nagadNumbersList.size).random()) }
+    val activeBkashList = remember(dynamicPaymentNumbers) {
+        val filtered = dynamicPaymentNumbers.filter { it.method == PaymentMethod.BKASH && it.isActive && it.number.isNotBlank() }.map { it.number }
+        if (filtered.isNotEmpty()) filtered else bkashNumbersList
+    }
+
+    val activeNagadList = remember(dynamicPaymentNumbers) {
+        val filtered = dynamicPaymentNumbers.filter { it.method == PaymentMethod.NAGAD && it.isActive && it.number.isNotBlank() }.map { it.number }
+        if (filtered.isNotEmpty()) filtered else nagadNumbersList
+    }
+
+    var bkashIndex by remember { mutableStateOf((0 until activeBkashList.size).random()) }
+    var nagadIndex by remember { mutableStateOf((0 until activeNagadList.size).random()) }
     var secondsRemaining by remember { mutableStateOf(300) } // 5 minutes = 300 seconds
 
     // 5-minute auto-rotation timer with live countdown
@@ -99,16 +113,16 @@ fun DepositScreen(
                 secondsRemaining--
             } else {
                 secondsRemaining = 300
-                bkashIndex = (bkashIndex + 1) % bkashNumbersList.size
-                nagadIndex = (nagadIndex + 1) % nagadNumbersList.size
+                bkashIndex = (bkashIndex + 1) % activeBkashList.size.coerceAtLeast(1)
+                nagadIndex = (nagadIndex + 1) % activeNagadList.size.coerceAtLeast(1)
             }
         }
     }
 
     val currentDepositNumber = if (selectedMethod == PaymentMethod.BKASH) {
-        bkashNumbersList[bkashIndex % bkashNumbersList.size]
+        activeBkashList[bkashIndex % activeBkashList.size.coerceAtLeast(1)]
     } else {
-        nagadNumbersList[nagadIndex % nagadNumbersList.size]
+        activeNagadList[nagadIndex % activeNagadList.size.coerceAtLeast(1)]
     }
 
     val minutes = secondsRemaining / 60
@@ -666,7 +680,129 @@ fun DepositScreen(
             )
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // Personal User Deposits Status (if logged in)
+        val myDeposits = remember(transactions, userProfile.username, userProfile.phone, userProfile.isLoggedIn) {
+            if (!userProfile.isLoggedIn) emptyList()
+            else {
+                val uName = userProfile.username.trim()
+                val uPhone = userProfile.phone.trim()
+                transactions.filter {
+                    it.type == TransactionType.DEPOSIT && (
+                        (uName.isNotBlank() && it.username.isNotBlank() && it.username.trim().equals(uName, ignoreCase = true)) ||
+                        (uPhone.isNotBlank() && it.userPhone.isNotBlank() && it.userPhone.trim() == uPhone)
+                    )
+                }
+            }
+        }
+
+        if (myDeposits.isNotEmpty()) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = Slate800),
+                border = CardDefaults.outlinedCardBorder().copy(brush = Brush.linearGradient(listOf(GoldPrimary.copy(alpha = 0.4f), CasinoBorderSubtle)))
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(text = "📜", fontSize = 14.sp)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = StringRes.t(language, "আমার ডিপোজিট হিস্ট্রি", "My Deposit History"),
+                                color = GoldLight,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Slate700
+                        ) {
+                            Text(
+                                text = "${myDeposits.size} টি",
+                                color = Slate300,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    myDeposits.take(5).forEach { dep ->
+                        val isRejected = dep.status == TransactionStatus.REJECTED
+                        val isApproved = dep.status == TransactionStatus.APPROVED
+
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            colors = CardDefaults.cardColors(containerColor = if (isRejected) Color(0xFF1E1418) else Slate900),
+                            border = BorderStroke(
+                                1.dp,
+                                if (isRejected) Color(0xFFFF5252).copy(alpha = 0.4f)
+                                else if (isApproved) AccentEmerald.copy(alpha = 0.4f)
+                                else Color(0xFFFFB300).copy(alpha = 0.4f)
+                            )
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(10.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column {
+                                    Text(
+                                        text = "৳%,.0f (%s)".format(java.util.Locale.US, dep.amount, dep.method.displayName.substringBefore(" ")),
+                                        color = if (isApproved) AccentEmerald else if (isRejected) Color(0xFFFF8A80) else Slate100,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp
+                                    )
+                                    Text(
+                                        text = "TrxID: ${dep.trxId} • ${dep.timeFormatted}",
+                                        color = Slate400,
+                                        fontSize = 10.sp
+                                    )
+                                }
+
+                                Surface(
+                                    shape = RoundedCornerShape(4.dp),
+                                    color = when (dep.status) {
+                                        TransactionStatus.APPROVED -> Color(0xFF0F2E23)
+                                        TransactionStatus.PENDING -> Color(0xFF332709)
+                                        TransactionStatus.REJECTED -> Color(0xFF3B151A)
+                                    },
+                                    border = BorderStroke(0.8.dp, Color(dep.status.colorHex).copy(alpha = 0.6f))
+                                ) {
+                                    Text(
+                                        text = when (dep.status) {
+                                            TransactionStatus.APPROVED -> if (language == AppLanguage.BN) "✔ এপ্রুভ" else "Approved"
+                                            TransactionStatus.PENDING -> if (language == AppLanguage.BN) "⏳ পেন্ডিং" else "Pending"
+                                            TransactionStatus.REJECTED -> if (language == AppLanguage.BN) "✖ রিজেক্ট" else "Rejected"
+                                        },
+                                        color = Color(dep.status.colorHex),
+                                        fontWeight = FontWeight.ExtraBold,
+                                        fontSize = 10.sp,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(18.dp))
+        }
 
         // Live Deposit Approval Feed / History
         LiveDepositApprovalSection(language = language)

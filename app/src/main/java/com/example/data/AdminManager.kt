@@ -202,7 +202,8 @@ class AdminManager private constructor(context: Context) {
     // ==========================================
     private fun loadPaymentNumbers() {
         val raw = prefs.getString(KEY_PAYMENT_NUMBERS_JSON, null)
-        if (raw.isNullOrEmpty() || raw == "[]") {
+        val hasDummy = raw?.contains("01712-348901") == true || raw?.contains("01711-223344") == true
+        if (raw.isNullOrEmpty() || raw == "[]" || hasDummy) {
             val defaultList = createDefaultPaymentNumbers()
             _paymentNumbers.value = defaultList
             savePaymentNumbersDirect(defaultList)
@@ -390,35 +391,35 @@ class AdminManager private constructor(context: Context) {
 
     private fun createDefaultPaymentNumbers(): List<AdminPaymentNumber> {
         val list = mutableListOf<AdminPaymentNumber>()
-        // 10 bKash numbers
+        // 10 bKash numbers (Populated with your real numbers from website)
         val bkashNumbers = listOf(
-            "01712-348901" to "bKash Agent 01 (Dhaka)",
-            "01823-456712" to "bKash Agent 02 (Banani)",
-            "01934-567823" to "bKash Agent 03 (Gulshan)",
-            "01345-678934" to "bKash Agent 04 (Chittagong)",
-            "01756-789045" to "bKash Agent 05 (Sylhet)",
-            "01867-890156" to "bKash Agent 06 (Rajshahi)",
-            "01978-901267" to "bKash Agent 07 (Khulna)",
-            "01389-012378" to "bKash Agent 08 (Barisal)",
-            "01790-123489" to "bKash Agent 09 (Rangpur)",
-            "01801-234590" to "bKash Agent 10 (Comilla)"
+            "01356033503" to "bKash Agent 01 (সক্রিয়)",
+            "01318097241" to "bKash Agent 02 (সক্রিয়)",
+            "01357287095" to "bKash Agent 03 (সক্রিয়)",
+            "01349782631" to "bKash Agent 04 (সক্রিয়)",
+            "01349845907" to "bKash Agent 05 (সক্রিয়)",
+            "01349845902" to "bKash Agent 06 (সক্রিয়)",
+            "01356033503" to "bKash Agent 07 (সক্রিয়)",
+            "01318097241" to "bKash Agent 08 (সক্রিয়)",
+            "01357287095" to "bKash Agent 09 (সক্রিয়)",
+            "01349782631" to "bKash Agent 10 (সক্রিয়)"
         )
         bkashNumbers.forEach { (num, lbl) ->
             list.add(AdminPaymentNumber(method = PaymentMethod.BKASH, number = num, agentLabel = lbl))
         }
 
-        // 10 Nagad numbers
+        // 10 Nagad numbers (Populated with your real numbers from website)
         val nagadNumbers = listOf(
-            "01711-223344" to "Nagad Merchant 01 (Motijheel)",
-            "01822-334455" to "Nagad Merchant 02 (Dhanmondi)",
-            "01933-445566" to "Nagad Merchant 03 (Uttara)",
-            "01344-556677" to "Nagad Merchant 04 (Mirpur)",
-            "01755-667788" to "Nagad Merchant 05 (Gazipur)",
-            "01866-778899" to "Nagad Merchant 06 (Narayanganj)",
-            "01977-889900" to "Nagad Merchant 07 (Bogra)",
-            "01388-990011" to "Nagad Merchant 08 (Jessore)",
-            "01799-001122" to "Nagad Merchant 09 (Mymensingh)",
-            "01810-112233" to "Nagad Merchant 10 (Cox's Bazar)"
+            "01357286400" to "Nagad Merchant 01 (সক্রিয়)",
+            "01356033503" to "Nagad Merchant 02 (সক্রিয়)",
+            "01318097241" to "Nagad Merchant 03 (সক্রিয়)",
+            "01357287095" to "Nagad Merchant 04 (সক্রিয়)",
+            "01349845888" to "Nagad Merchant 05 (সক্রিয়)",
+            "01349845906" to "Nagad Merchant 06 (সক্রিয়)",
+            "01349845907" to "Nagad Merchant 07 (সক্রিয়)",
+            "01349845902" to "Nagad Merchant 08 (সক্রিয়)",
+            "01357286400" to "Nagad Merchant 09 (সক্রিয়)",
+            "01356033503" to "Nagad Merchant 10 (সক্রিয়)"
         )
         nagadNumbers.forEach { (num, lbl) ->
             list.add(AdminPaymentNumber(method = PaymentMethod.NAGAD, number = num, agentLabel = lbl))
@@ -481,9 +482,9 @@ class AdminManager private constructor(context: Context) {
         }
     }
 
-    fun updateDepositStatusLocally(id: String, status: TransactionStatus) {
+    fun updateDepositStatusLocally(id: String, status: TransactionStatus, note: String = "") {
         val updated = _depositRequests.value.map {
-            if (it.id == id) it.copy(status = status) else it
+            if (it.id == id) it.copy(status = status, reviewNote = if (note.isNotBlank()) note else it.reviewNote) else it
         }
         _depositRequests.value = updated
         saveDepositRequestsDirect(updated)
@@ -542,7 +543,7 @@ class AdminManager private constructor(context: Context) {
             amount = amount,
             agentNumberUsed = agentNumberUsed,
             userAccountNo = userAccountNo,
-            trxId = trxId.uppercase(),
+            trxId = trxId.trim().uppercase(),
             status = TransactionStatus.PENDING
         )
         val updated = listOf(req) + _depositRequests.value
@@ -586,7 +587,16 @@ class AdminManager private constructor(context: Context) {
                 req.userPhone,
                 req.username
             )
-            SnxCloudSyncService.pushDepositStatusUpdate(appContext, req.id, TransactionStatus.APPROVED, "Approved by Admin")
+            SnxCloudSyncService.pushDepositStatusUpdate(
+                appContext,
+                req.id,
+                TransactionStatus.APPROVED,
+                "Approved by Admin",
+                totalCredit = totalCredit,
+                depositAmount = req.amount,
+                userPhone = req.userPhone,
+                username = req.username
+            )
             return true
         }
         return false
@@ -603,17 +613,27 @@ class AdminManager private constructor(context: Context) {
         if (rejectedReq != null) {
             _depositRequests.value = updated
             saveDepositRequests(updated)
-            updateTransactionStatus(rejectedReq!!.userPhone, rejectedReq!!.username, TransactionType.DEPOSIT, TransactionStatus.REJECTED)
+            val req = rejectedReq!!
+            updateTransactionStatus(
+                phone = req.userPhone,
+                username = req.username,
+                type = TransactionType.DEPOSIT,
+                status = TransactionStatus.REJECTED,
+                trxId = req.trxId,
+                rejectReason = reason
+            )
 
             SharedDataStore.notifyDepositStatusChanged(
                 appContext,
-                rejectedReq!!.id,
+                req.id,
                 "REJECTED",
                 0.0,
-                rejectedReq!!.userPhone,
-                rejectedReq!!.username
+                req.userPhone,
+                req.username,
+                reason = reason,
+                trxId = req.trxId
             )
-            SnxCloudSyncService.pushDepositStatusUpdate(appContext, rejectedReq!!.id, TransactionStatus.REJECTED, reason)
+            SnxCloudSyncService.pushDepositStatusUpdate(appContext, req.id, TransactionStatus.REJECTED, reason)
             return true
         }
         return false
@@ -765,11 +785,28 @@ class AdminManager private constructor(context: Context) {
         return false
     }
 
-    private fun updateTransactionStatus(phone: String, username: String, type: TransactionType, status: TransactionStatus) {
+    private fun updateTransactionStatus(
+        phone: String,
+        username: String,
+        type: TransactionType,
+        status: TransactionStatus,
+        trxId: String = "",
+        rejectReason: String = ""
+    ) {
         val txs = sessionManager.getTransactions() ?: return
+        val cleanPhone = phone.trim()
+        val cleanUsername = username.trim()
+        val cleanTrx = trxId.trim()
         val updated = txs.map { tx ->
-            if (tx.type == type && tx.status == TransactionStatus.PENDING) {
-                tx.copy(status = status)
+            val matchType = tx.type == type
+            val matchTrx = cleanTrx.isNotBlank() && tx.trxId.trim().equals(cleanTrx, ignoreCase = true)
+            val matchUser = (cleanPhone.isNotBlank() && (tx.userPhone == cleanPhone || tx.userPhone.endsWith(cleanPhone) || cleanPhone.endsWith(tx.userPhone))) ||
+                    (cleanUsername.isNotBlank() && tx.username.equals(cleanUsername, ignoreCase = true))
+            if (matchType && (matchTrx || (tx.status == TransactionStatus.PENDING && matchUser))) {
+                tx.copy(
+                    status = status,
+                    rejectReason = if (rejectReason.isNotBlank()) rejectReason else tx.rejectReason
+                )
             } else tx
         }
         sessionManager.saveTransactions(updated)
@@ -800,7 +837,7 @@ class AdminManager private constructor(context: Context) {
                 )
             )
         }
-        return accounts
+        return accounts.reversed()
     }
 
     fun loadRegisteredUsers() {
@@ -854,8 +891,9 @@ class AdminManager private constructor(context: Context) {
 
     private fun creditUserBalance(phone: String, username: String, totalCredit: Double, depositAmount: Double) {
         val cleanPhone = phone.trim()
+        val cleanUsername = username.trim()
         val currentSession = sessionManager.getUserSession()
-        if (currentSession.phone == cleanPhone || currentSession.username == username) {
+        if ((cleanPhone.isNotBlank() && currentSession.phone == cleanPhone) || (cleanUsername.isNotBlank() && currentSession.username.equals(cleanUsername, ignoreCase = true))) {
             val updated = currentSession.copy(
                 balanceBDT = currentSession.balanceBDT + totalCredit,
                 totalDeposited = currentSession.totalDeposited + depositAmount
@@ -863,14 +901,36 @@ class AdminManager private constructor(context: Context) {
             sessionManager.saveUserSession(updated)
         }
 
-        // Update in registered accounts
-        val accounts = sessionManager.getRegisteredAccounts().map {
-            if (it.phone == cleanPhone || it.username == username) {
-                it.copy(
-                    balanceBDT = it.balanceBDT + totalCredit,
-                    totalDeposited = it.totalDeposited + depositAmount
-                )
-            } else it
+        // Update in registered accounts (upsert if not present)
+        val currentAccounts = sessionManager.getRegisteredAccounts()
+        val exists = currentAccounts.any {
+            (cleanPhone.isNotBlank() && (it.phone == cleanPhone || it.phone.endsWith(cleanPhone) || cleanPhone.endsWith(it.phone))) ||
+            (cleanUsername.isNotBlank() && it.username.equals(cleanUsername, ignoreCase = true))
+        }
+        val accounts = if (exists) {
+            currentAccounts.map {
+                val matchPhone = cleanPhone.isNotBlank() && (it.phone == cleanPhone || it.phone.endsWith(cleanPhone) || cleanPhone.endsWith(it.phone))
+                val matchName = cleanUsername.isNotBlank() && it.username.equals(cleanUsername, ignoreCase = true)
+                if (matchPhone || matchName) {
+                    it.copy(
+                        balanceBDT = it.balanceBDT + totalCredit,
+                        totalDeposited = it.totalDeposited + depositAmount
+                    )
+                } else it
+            }
+        } else {
+            currentAccounts + RegisteredAccount(
+                username = if (cleanUsername.isNotBlank()) cleanUsername else "User$cleanPhone",
+                phone = cleanPhone,
+                email = "",
+                password = "••••",
+                balanceBDT = totalCredit,
+                totalDeposited = depositAmount,
+                totalWithdrawn = 0.0,
+                vipLevel = "VIP 1",
+                registeredDate = "Live Active User",
+                status = "ACTIVE"
+            )
         }
         sessionManager.saveRegisteredAccounts(accounts)
         loadRegisteredUsers()
@@ -964,7 +1024,8 @@ class AdminManager private constructor(context: Context) {
                             playersCount = obj.optInt("playersCount", 1420),
                             imageUrl = obj.optString("imageUrl", ""),
                             isActive = obj.optBoolean("isActive", true),
-                            serverStatus = GameServerStatus.fromCode(obj.optString("serverStatus", "ACTIVE"))
+                            serverStatus = GameServerStatus.fromCode(obj.optString("serverStatus", "ACTIVE")),
+                            thumbnailFitMode = obj.optString("thumbnailFitMode", "CROP")
                         )
                     )
                 }
@@ -979,7 +1040,25 @@ class AdminManager private constructor(context: Context) {
     fun getDefaultGamesList(): List<GameItem> = listOf(
         GameItem("super_ace", "সুপার এস (Super Ace)", "Super Ace", GameCategory.SLOTS, "HOT", "🃏", 10.0, 5420),
         GameItem("aviator_crash", "SPRIBE AVIATOR", "SPRIBE AVIATOR", GameCategory.CRASH, "HOT", "✈️", 50.0, 9480),
-        GameItem("athena_rising", "অ্যাথেনা রাইজিং (Athena Rising)", "Athena Rising", GameCategory.SLOTS, "JACKPOT", "⚡", 20.0, 3120),
+        GameItem("slot_fortune_gems_3", "ফরচুন জেমস ৩", "Fortune Gems 3", GameCategory.SLOTS, "HOT", "💎", 10.0, 4890),
+        GameItem("flyx", "ফ্লাইএক্স (FlyX)", "FlyX Crash", GameCategory.CRASH, "HOT", "🚀", 20.0, 3750),
+        GameItem("boxing_king", "বক্সিং কিং", "Boxing King", GameCategory.HOT, "HOT", "🥊", 10.0, 4120),
+        GameItem("mighty_sevens", "মাইটি সেভেন্স ৭৭৭", "Mighty Sevens 777", GameCategory.SLOTS, "JACKPOT", "🎰", 10.0, 5210),
+        GameItem("crazy_time", "ক্রেজি টাইম শো", "Crazy Time Live Show", GameCategory.CASINO, "LIVE", "🎪", 50.0, 6200),
+        GameItem("live_playtech", "প্লেটেক লাইভ ডিলার", "Playtech Live Casino", GameCategory.CASINO, "LIVE", "💃", 50.0, 3180),
+        GameItem("live_w_casino", "ডাব্লিউ ক্যাসিনো ভিআইপি", "W Casino Live Dealer", GameCategory.CASINO, "LIVE", "👑", 50.0, 2940),
+        GameItem("sports_9wickets", "৯উইকেটস ক্রিকেট ব্যাটিং", "9Wickets Cricket", GameCategory.SPORTS, "LIVE", "🏏", 50.0, 4120),
+        GameItem("sports_lucky", "লাকি স্পোর্টস ক্রিকেট", "Lucky Sports Cricket", GameCategory.SPORTS, "LIVE", "🔴", 50.0, 3620),
+        GameItem("sports_saba", "সাবা স্পোর্টস ক্রিকেট", "Saba Sports Cricket", GameCategory.SPORTS, "LIVE", "🧤", 50.0, 2890),
+        GameItem("slot_anubis_wrath", "আনুবিস রথ স্লট", "Anubis Wrath", GameCategory.SLOTS, "JACKPOT", "🏺", 20.0, 3450),
+        GameItem("slot_777_rocket", "রকেট ৭৭৭ স্লট", "777 Rocket", GameCategory.SLOTS, "HOT", "🚀", 10.0, 4200),
+        GameItem("fortune_garuda", "ফরচুন গারুদা ৫০০", "Fortune Garuda 500", GameCategory.SLOTS, "POPULAR", "🦅", 20.0, 2760),
+        GameItem("ludo_quick", "লুডু কুইক গেম", "Ludo Quick", GameCategory.TABLE, "POPULAR", "🎲", 10.0, 3950),
+        GameItem("andar_bahar", "আন্দার বাহার লাইভ", "Andar Bahar Live", GameCategory.CASINO, "HOT", "🎴", 20.0, 2410),
+        GameItem("cards_32", "৩২ কার্ডস রয়েল", "32 Cards Royal", GameCategory.TABLE, null, "🃏", 10.0, 1890),
+        GameItem("thai_hi_lo", "থাই হাই-লো ডাইস", "Thai Hi-Lo Dice", GameCategory.TABLE, null, "🎲", 10.0, 1620),
+        GameItem("thai_fish_prawn_crab", "ফিশ প্রন ক্র্যাব", "Fish Prawn Crab", GameCategory.HOT, "POPULAR", "🦐", 10.0, 2350),
+        GameItem("athena_rising", "অ্যাথেনা রাইজিং", "Athena Rising", GameCategory.SLOTS, "JACKPOT", "⚡", 20.0, 3120),
         GameItem("slot_777", "মেগা জ্যাকপট ৭৭৭", "Mega Jackpot 777", GameCategory.SLOTS, "HOT", "🎰", 10.0, 3420),
         GameItem("cricket_live", "বিপিএল ক্রিকেট লাইভ প্রেডিকশন", "BPL Cricket Live", GameCategory.SPORTS, "LIVE", "🏏", 50.0, 4120),
         GameItem("lucky_wheel", "দৈনিক লাকি স্পিন হুইল", "Daily Lucky Spin", GameCategory.HOT, "BONUS", "🎡", 0.0, 8910),
@@ -989,8 +1068,7 @@ class AdminManager private constructor(context: Context) {
         GameItem("roulette_pro", "ইউরোপিয়ান রুলেট", "European Roulette", GameCategory.TABLE, null, "🎯", 50.0, 1150),
         GameItem("fish_hunter", "ওশান কিং ফিশ শুটার", "Ocean King Fish Hunter", GameCategory.HOT, "POPULAR", "🐟", 10.0, 1640),
         GameItem("dice_roll", "লাকি ডাইস হাই-লো", "Lucky Dice Hi-Lo", GameCategory.TABLE, null, "🎲", 10.0, 820),
-        GameItem("gold_rush_slot", "গোল্ড রাশ মেগাওয়েস", "Gold Rush Megaways", GameCategory.SLOTS, "JACKPOT", "💰", 20.0, 2740),
-        GameItem("crazy_time", "ক্রেজি টাইম শো", "Crazy Time Live Show", GameCategory.CASINO, "LIVE", "🎪", 50.0, 6200)
+        GameItem("gold_rush_slot", "গোল্ড রাশ মেগাওয়েস", "Gold Rush Megaways", GameCategory.SLOTS, "JACKPOT", "💰", 20.0, 2740)
     )
 
     fun addGame(game: GameItem): Boolean {
@@ -1004,6 +1082,19 @@ class AdminManager private constructor(context: Context) {
     fun updateGame(updated: GameItem): Boolean {
         val list = _gamesList.value.map {
             if (it.id == updated.id) updated else it
+        }
+        _gamesList.value = list
+        saveGamesListDirect(list)
+        return true
+    }
+
+    /**
+     * Dedicated method to change ONLY the game cover photo / theme thumbnail
+     * without modifying game logic, betting rules, or internal engine.
+     */
+    fun updateGameTheme(gameId: String, newImageUrl: String, fitMode: String = "CROP"): Boolean {
+        val list = _gamesList.value.map {
+            if (it.id == gameId) it.copy(imageUrl = newImageUrl.trim(), thumbnailFitMode = fitMode) else it
         }
         _gamesList.value = list
         saveGamesListDirect(list)
@@ -1051,6 +1142,7 @@ class AdminManager private constructor(context: Context) {
                     put("imageUrl", g.imageUrl)
                     put("isActive", g.isActive)
                     put("serverStatus", g.serverStatus.code)
+                    put("thumbnailFitMode", g.thumbnailFitMode)
                 }
                 array.put(obj)
             }
